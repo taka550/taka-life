@@ -6,17 +6,17 @@
   <meta name="theme-color" content="#12372a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="タカ体重管理" />
+  <meta name="apple-mobile-web-app-title" content="タカライフ" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <link rel="stylesheet" href="styles.css" />
-  <title>タカ体重管理</title>
+  <title>タカライフ｜体重管理</title>
 </head>
 <body>
   <header class="app-header">
     <div>
-      <p class="eyebrow">TAKA HEALTH LOG</p>
-      <h1>タカ体重管理</h1>
+      <p class="eyebrow">TAKA LIFE</p>
+      <h1>タカライフ <small>体重管理</small></h1>
     </div>
     <button id="installBtn" class="ghost hidden" type="button">ホームに追加</button>
   </header>
@@ -27,6 +27,7 @@
         <p class="label">現在体重</p>
         <div class="weight-display"><span id="currentWeight">--</span><small>kg</small></div>
         <p id="currentMeta" class="muted">記録を読み込み中…</p>
+        <p id="goalMessage" class="goal-message"></p>
       </div>
       <div class="goal-ring" aria-label="目標達成率">
         <span id="goalRate">0%</span>
@@ -39,6 +40,15 @@
       <article class="card kpi"><span>BMI</span><strong id="bmi">--</strong></article>
       <article class="card kpi"><span>目標まで</span><strong id="toGoal">--</strong></article>
       <article class="card kpi"><span>初回比</span><strong id="diffFirst">--</strong></article>
+    </section>
+
+    <section class="card trend-summary">
+      <p class="eyebrow">WEEKLY SNAPSHOT</p>
+      <div class="summary-grid">
+        <div><span>7日間の変化</span><strong id="weekChange">--</strong></div>
+        <div><span>直近7回平均</span><strong id="recentAverage">--</strong></div>
+        <div><span>記録回数</span><strong id="recordCount">--</strong></div>
+      </div>
     </section>
 
     <section class="card input-card">
@@ -63,7 +73,7 @@
           </select>
         </label>
         <label>メモ（任意）<textarea id="memoInput" rows="2" placeholder="体調、食事、マンジャロなど"></textarea></label>
-        <button class="primary" type="submit">記録する</button>
+        <button class="primary" type="submit">この体重を記録する</button>
       </form>
       <p id="saveMessage" class="message" role="status"></p>
     </section>
@@ -88,7 +98,10 @@
     <section class="card mio-card">
       <p class="eyebrow">MIO THEATER</p>
       <h2>今日のミオ劇場</h2>
-      <p id="mioText">記録が入ると、ここにひとこと表示されるで 🌼</p>
+      <div class="mio-lines">
+        <article><span>🌼 エンジェルミオ</span><p id="angelText">記録が入るとコメントするで。</p></article>
+        <article><span>😈 デビルミオ</span><p id="devilText">デビルも待機中や。</p></article>
+      </div>
       <button id="copyChatBtn" class="secondary" type="button">ChatGPTに送る文章をコピー</button>
     </section>
 
@@ -99,7 +112,8 @@
         <button id="exportCsvBtn" class="secondary" type="button">Excel用CSVを書き出す</button>
         <label class="file-button">バックアップを読み込む<input id="importFile" type="file" accept=".json,.csv,text/csv,application/json" /></label>
       </div>
-      <p class="muted small">データはこの端末のブラウザ内に保存。更新前にJSONバックアップ推奨。</p>
+      <p class="muted small">データはこの端末内に保存されます。アプリ更新では消えませんが、SafariのWebサイトデータ削除前にはJSONバックアップ推奨。</p>
+      <p class="version">タカライフ Ver.1.1.0</p>
     </section>
   </main>
 
