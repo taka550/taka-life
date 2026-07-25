@@ -104,7 +104,7 @@ $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${n
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.3.0.1 AI Mio First Generation =====
+// ===== Ver.3.0.2 AI Mio First Generation =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v2';
 const MIO_MEMORY_STORAGE='takaLife.mioMemory.v1';
@@ -409,7 +409,7 @@ function parseLabelledMioResult(text){
 
   const found=required.filter(key=>result[key]).length;
   const preview=normalized.replace(/\s+/g,' ').slice(0,130);
-  throw new Error(`5つのセリフを読み取れませんでした（${found}/5件、返答冒頭：${preview||'空の返答'}）`);
+  throw new Error(`Geminiとの接続は成功しましたが、ミオ劇場の5つのセリフが揃いませんでした（${found}/5件）。もう一度「ミオ劇場をつくる」を押してください。返答冒頭：${preview||'空の返答'}`);
 }
 function buildGenerateBody(context){
   return {
@@ -443,6 +443,63 @@ async function requestGemini(model,key,context){
   }
   return data;
 }
+
+async function testGeminiConnectionOnly(){
+  const key=getGeminiKey();
+  if(!key)throw new Error('APIキーが未設定です。');
+
+  let model=await getAvailableGeminiModel(true);
+  const body={
+    contents:[{
+      role:'user',
+      parts:[{
+        text:'接続確認です。日本語で「接続できました」とだけ返してください。'
+      }]
+    }],
+    generationConfig:{
+      maxOutputTokens:40
+    }
+  };
+
+  for(let attempt=0;attempt<2;attempt++){
+    const response=await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-goog-api-key':key
+        },
+        body:JSON.stringify(body)
+      }
+    );
+
+    const data=await response.json().catch(()=>({}));
+
+    if(!response.ok){
+      const detail=data?.error?.message||`HTTP ${response.status}`;
+      const unavailable=response.status===404 ||
+        /no longer available|not found|not supported for generatecontent/i.test(detail);
+
+      if(unavailable && attempt===0){
+        localStorage.removeItem(GEMINI_MODEL_CACHE);
+        model=await getAvailableGeminiModel(true);
+        continue;
+      }
+      throw new Error(detail);
+    }
+
+    const text=extractCandidateText(data);
+    if(!text)throw new Error('Geminiから返事がありませんでした。');
+    return {
+      model,
+      message:text.replace(/\s+/g,' ').trim().slice(0,120)
+    };
+  }
+
+  throw new Error('接続確認に失敗しました。');
+}
+
 async function callGeminiForMio(userText,options={}){
   const key=getGeminiKey();
   if(!key)throw new Error('APIキーが未設定です。');
@@ -492,21 +549,29 @@ function applyAiMioTheater(result){
 async function runGeminiTest(){
   if(!getGeminiKey()&&!saveGeminiKey())return;
   const btn=$('testGeminiBtn');
+
   try{
-    if(btn){btn.disabled=true;btn.textContent='接続中…'}
-    setMioAiStatus('Geminiへ接続し、5つのセリフを確認しています…');
-    const result=await callGeminiForMio(
-      '接続テストです。二人で短く明るく挨拶してください。',
-      {forceModelRefresh:true}
+    if(btn){
+      btn.disabled=true;
+      btn.textContent='接続中…';
+    }
+
+    setMioAiStatus('Geminiへ接続できるか確認しています…');
+
+    const result=await testGeminiConnectionOnly();
+    localStorage.setItem(GEMINI_MODEL_CACHE,result.model);
+
+    setMioAiStatus(
+      `接続成功！ ${result.model} から「${result.message}」と返ってきました。`,
+      'success'
     );
-    const activeModel=localStorage.getItem(GEMINI_MODEL_CACHE)||'Gemini';
-    setMioAiStatus(`接続成功！ ${activeModel} とミオ劇場がつながりました。`,'success');
-    $('devilText1').textContent=result.devil1;
-    $('angelText1').textContent=result.angel1;
   }catch(err){
     setMioAiStatus(`接続できませんでした：${err.message}`,'error');
   }finally{
-    if(btn){btn.disabled=false;btn.textContent='接続テスト'}
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='接続テスト';
+    }
   }
 }
 async function askMio(){
@@ -522,7 +587,7 @@ async function askMio(){
   const btn=$('askMioBtn');
   try{
     if(btn){btn.disabled=true;btn.textContent='ミオたちが考え中…'}
-    setMioAiStatus('体重記録と最近の会話を見ながら、今日のミオ劇場を作っています…');
+    setMioAiStatus('体重記録と最近の会話を見ながら、5つのセリフを作っています…');
     const result=await callGeminiForMio(question);
     saveMioMemory(question,result);
     applyAiMioTheater(result);
@@ -549,7 +614,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
 
 document.querySelectorAll('[data-scroll]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.scroll;if(t==='top'){window.scrollTo({top:0,behavior:'smooth'});return}const targets={record:'#recordSection',mio:'#mioTheater',history:'#historySection'};document.querySelector(targets[t]).scrollIntoView({behavior:'smooth',block:'start'});if(t==='record')setTimeout(()=>$('weightInput').focus(),450)}));
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')}});
-const APP_VERSION='3.0.1';
+const APP_VERSION='3.0.2';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;

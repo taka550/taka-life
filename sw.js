@@ -1,5 +1,5 @@
-const CACHE='taka-life-v3.0.1';
-const ASSETS=['./','./index.html','./styles.css?v=3.0.1','./app.js?v=3.0.1','./manifest.webmanifest?v=3.0.1','./mio-angel.webp?v=3.0.1','./mio-devil.webp?v=3.0.1','./mio-devil-v220.webp?v=3.0.1','./mio-angel-v220.webp?v=3.0.1','./icon.svg','./icon-192-v2.png','./icon-512-v2.png','./apple-touch-icon-v2.png'];
+const CACHE='taka-life-v3.0.2';
+const ASSETS=['./','./index.html','./styles.css?v=3.0.2','./app.js?v=3.0.2','./manifest.webmanifest?v=3.0.2','./mio-angel.webp?v=3.0.2','./mio-devil.webp?v=3.0.2','./mio-devil-v220.webp?v=3.0.2','./mio-angel-v220.webp?v=3.0.2','./icon.svg','./icon-192-v2.png','./icon-512-v2.png','./apple-touch-icon-v2.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
