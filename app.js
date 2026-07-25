@@ -104,7 +104,7 @@ $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${n
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.3.0.0 AI Mio First Generation =====
+// ===== Ver.3.0.1 AI Mio First Generation =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v2';
 const MIO_MEMORY_STORAGE='takaLife.mioMemory.v1';
@@ -260,16 +260,21 @@ function mioSystemPrompt(context){
 - 医療診断、薬の変更、絶食、急激な減量、過度な運動を勧めない
 - 説教調、過剰な褒め方、同じ表現の繰り返しを避ける
 - 各セリフは35文字から100文字程度
-- JSON以外の前置き、Markdown、コードフェンスは出力しない
+- Markdown、JSON、説明文、前置きは出力しない
+- 次の5つの見出しを、この順番・表記のまま必ず1回ずつ使う
 
-【必須JSON形式】
-{
-  "devil1":"デビルミオの最初のセリフ",
-  "angel1":"エンジェルミオの返答",
-  "devil2":"デビルミオの次のセリフ",
-  "angel2":"エンジェルミオの締めのセリフ",
-  "finale":"二人からの短い締め"
-}
+DEVIL1:
+ANGEL1:
+DEVIL2:
+ANGEL2:
+FINALE:
+
+【正しい出力例】
+DEVIL1: 今日はよう頑張ったやん。ちょっと肩の力抜いてもええで。
+ANGEL1: 疲れを感じられているのも大切なサインです。今夜はゆっくり休みましょう。
+DEVIL2: せやけど、ごほうびを盛りすぎるんはナシやで。ほどほどが一番や。
+ANGEL2: 今日できたことを一つ認めて、明日に疲れを持ち越さないようにしましょう。
+FINALE: 今夜は焦らず、ゆっくり整える時間にしよう。
 
 【タカの現在情報】
 ${JSON.stringify(context,null,2)}`;
@@ -327,84 +332,97 @@ function extractCandidateText(data){
     .join('')
     .trim();
 }
-function findBalancedJsonObject(text){
-  let start=-1,depth=0,inString=false,escaped=false;
-  for(let i=0;i<text.length;i++){
-    const ch=text[i];
-    if(start<0){
-      if(ch==='{'){start=i;depth=1}
-      continue;
-    }
-    if(inString){
-      if(escaped)escaped=false;
-      else if(ch==='\\')escaped=true;
-      else if(ch==='"')inString=false;
-      continue;
-    }
-    if(ch==='"'){inString=true;continue}
-    if(ch==='{')depth++;
-    if(ch==='}'){
-      depth--;
-      if(depth===0)return text.slice(start,i+1);
-    }
-  }
-  return '';
-}
-function normalizeJsonText(text){
-  return String(text||'')
-    .replace(/^\uFEFF/,'')
-    .replace(/```(?:json)?/gi,'')
-    .replace(/```/g,'')
+function cleanMioLine(value){
+  return String(value||'')
+    .replace(/^[\s*#>\-・]+/,'')
+    .replace(/[\s*]+$/,'')
     .trim();
 }
-function parseMioResult(text){
-  const normalized=normalizeJsonText(text);
-  const attempts=[normalized,findBalancedJsonObject(normalized)].filter(Boolean);
-  let lastError=null;
-
-  for(const candidate of attempts){
-    try{
-      let parsed=JSON.parse(candidate);
-      if(parsed?.mioTheater && typeof parsed.mioTheater==='object'){
-        parsed=parsed.mioTheater;
-      }
-      const keys=['devil1','angel1','devil2','angel2','finale'];
-      const valid=keys.every(k=>typeof parsed?.[k]==='string' && parsed[k].trim());
-      if(valid){
-        return Object.fromEntries(keys.map(k=>[k,parsed[k].trim()]));
-      }
-    }catch(err){
-      lastError=err;
-    }
-  }
-  const preview=normalized.replace(/\s+/g,' ').slice(0,110);
-  throw new Error(`返事を会話形式に変換できませんでした${preview?`（返答冒頭：${preview}）`:''}`);
+function normalizeMioLabel(label){
+  const value=String(label||'')
+    .toUpperCase()
+    .replace(/[\s_\-【】\[\]（）()：:＊*]/g,'');
+  const map={
+    'DEVIL1':'devil1','デビル1':'devil1','デビル①':'devil1',
+    'ANGEL1':'angel1','エンジェル1':'angel1','エンジェル①':'angel1',
+    'DEVIL2':'devil2','デビル2':'devil2','デビル②':'devil2',
+    'ANGEL2':'angel2','エンジェル2':'angel2','エンジェル②':'angel2',
+    'FINALE':'finale','FINAL':'finale','締め':'finale','まとめ':'finale'
+  };
+  return map[value]||null;
 }
-function buildGenerateBody(context,useSchema=true){
-  const generationConfig={maxOutputTokens:900};
-  if(useSchema){
-    generationConfig.responseMimeType='application/json';
-    generationConfig.responseSchema={
-      type:'OBJECT',
-      properties:{
-        devil1:{type:'STRING'},
-        angel1:{type:'STRING'},
-        devil2:{type:'STRING'},
-        angel2:{type:'STRING'},
-        finale:{type:'STRING'}
-      },
-      required:['devil1','angel1','devil2','angel2','finale']
+function parseLabelledMioResult(text){
+  const normalized=String(text||'')
+    .replace(/```(?:text|json|markdown)?/gi,'')
+    .replace(/```/g,'')
+    .replace(/\r/g,'')
+    .trim();
+
+  const result={};
+  const labelPattern=/^\s*[*#>\-・]*\s*(DEVIL\s*1|ANGEL\s*1|DEVIL\s*2|ANGEL\s*2|FINALE|FINAL|デビル\s*[12①②]|エンジェル\s*[12①②]|締め|まとめ)\s*[*】\]]*\s*[:：\-]\s*(.*)$/gim;
+  const matches=[...normalized.matchAll(labelPattern)];
+
+  for(let i=0;i<matches.length;i++){
+    const key=normalizeMioLabel(matches[i][1]);
+    if(!key)continue;
+    const start=matches[i].index+matches[i][0].length;
+    const end=i+1<matches.length?matches[i+1].index:normalized.length;
+    const inline=matches[i][2]||'';
+    const continuation=normalized.slice(start,end).trim();
+    const combined=cleanMioLine([inline,continuation].filter(Boolean).join(' '));
+    if(combined)result[key]=combined;
+  }
+
+  const required=['devil1','angel1','devil2','angel2','finale'];
+  if(required.every(key=>result[key]))return result;
+
+  const lines=normalized.split('\n').map(line=>line.trim()).filter(Boolean);
+  for(let i=0;i<lines.length;i++){
+    const raw=lines[i].replace(/^[*#>\-・\s]+|[*\s]+$/g,'');
+    const key=normalizeMioLabel(raw.replace(/[:：]$/,''));
+    if(!key||result[key])continue;
+    const values=[];
+    for(let j=i+1;j<lines.length;j++){
+      const nextRaw=lines[j].replace(/^[*#>\-・\s]+|[*\s]+$/g,'');
+      if(normalizeMioLabel(nextRaw.replace(/[:：]$/,'')))break;
+      values.push(lines[j]);
+    }
+    const value=cleanMioLine(values.join(' '));
+    if(value)result[key]=value;
+  }
+  if(required.every(key=>result[key]))return result;
+
+  const contentLines=lines
+    .map(line=>cleanMioLine(line))
+    .filter(line=>line.length>=8)
+    .filter(line=>!normalizeMioLabel(line.replace(/[:：]$/,'')));
+
+  if(contentLines.length>=5){
+    return {
+      devil1:contentLines[0],
+      angel1:contentLines[1],
+      devil2:contentLines[2],
+      angel2:contentLines[3],
+      finale:contentLines.slice(4).join(' ')
     };
   }
+
+  const found=required.filter(key=>result[key]).length;
+  const preview=normalized.replace(/\s+/g,' ').slice(0,130);
+  throw new Error(`5つのセリフを読み取れませんでした（${found}/5件、返答冒頭：${preview||'空の返答'}）`);
+}
+function buildGenerateBody(context){
   return {
     contents:[{
       role:'user',
       parts:[{text:mioSystemPrompt(context)}]
     }],
-    generationConfig
+    generationConfig:{
+      maxOutputTokens:900
+    }
   };
 }
-async function requestGemini(model,key,context,useSchema){
+async function requestGemini(model,key,context){
   const response=await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {
@@ -413,7 +431,7 @@ async function requestGemini(model,key,context,useSchema){
         'Content-Type':'application/json',
         'x-goog-api-key':key
       },
-      body:JSON.stringify(buildGenerateBody(context,useSchema))
+      body:JSON.stringify(buildGenerateBody(context))
     }
   );
   const data=await response.json().catch(()=>({}));
@@ -434,11 +452,14 @@ async function callGeminiForMio(userText,options={}){
 
   for(let attempt=0;attempt<3;attempt++){
     try{
-      const useSchema=attempt<2;
-      const data=await requestGemini(model,key,context,useSchema);
+      const retryContext=attempt===0?context:{
+        ...context,
+        formatReminder:'前の返答は読み取れませんでした。DEVIL1、ANGEL1、DEVIL2、ANGEL2、FINALEの5行だけを必ず返してください。'
+      };
+      const data=await requestGemini(model,key,retryContext);
       const text=extractCandidateText(data);
       if(!text)throw new Error('Geminiから文章の返事がありませんでした。');
-      return parseMioResult(text);
+      return parseLabelledMioResult(text);
     }catch(err){
       const modelUnavailable=err.status===404 ||
         /no longer available|not found|not supported for generatecontent/i.test(err.message||'');
@@ -449,20 +470,13 @@ async function callGeminiForMio(userText,options={}){
         continue;
       }
 
-      const schemaIssue=err.status===400 &&
-        /schema|responsemime|response.*format|generationconfig/i.test(err.message||'');
-
-      if(schemaIssue && attempt<2){
-        continue;
-      }
-
-      if(/返事を会話形式に変換できません/.test(err.message||'') && attempt<2){
+      if(/5つのセリフを読み取れません/.test(err.message||'') && attempt<2){
         continue;
       }
       throw err;
     }
   }
-  throw new Error('Geminiの返答を読み取れませんでした。もう一度お試しください。');
+  throw new Error('Geminiのセリフを読み取れませんでした。もう一度お試しください。');
 }
 function applyAiMioTheater(result){
   clearTheaterTimers();
@@ -480,7 +494,7 @@ async function runGeminiTest(){
   const btn=$('testGeminiBtn');
   try{
     if(btn){btn.disabled=true;btn.textContent='接続中…'}
-    setMioAiStatus('Geminiへ接続し、会話形式を確認しています…');
+    setMioAiStatus('Geminiへ接続し、5つのセリフを確認しています…');
     const result=await callGeminiForMio(
       '接続テストです。二人で短く明るく挨拶してください。',
       {forceModelRefresh:true}
@@ -535,7 +549,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
 
 document.querySelectorAll('[data-scroll]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.scroll;if(t==='top'){window.scrollTo({top:0,behavior:'smooth'});return}const targets={record:'#recordSection',mio:'#mioTheater',history:'#historySection'};document.querySelector(targets[t]).scrollIntoView({behavior:'smooth',block:'start'});if(t==='record')setTimeout(()=>$('weightInput').focus(),450)}));
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')}});
-const APP_VERSION='3.0.0';
+const APP_VERSION='3.0.1';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
