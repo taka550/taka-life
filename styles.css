@@ -113,3 +113,194 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
   .speech{width:86%;padding:10px 12px}
   .speech p{font-size:12px;line-height:1.55}
 }
+
+
+/* =========================================================
+   Ver.2.2.0 — Mio Theater formal UI
+   Approved design: clean character art + app-rendered dialogue.
+   ========================================================= */
+.theater-v220{
+  min-height:auto;
+  padding:0 0 18px;
+  border-radius:22px;
+  background:
+    radial-gradient(circle at 18% 28%,rgba(132,77,161,.20),transparent 30%),
+    radial-gradient(circle at 82% 18%,rgba(218,176,95,.18),transparent 32%),
+    linear-gradient(180deg,#281932 0%,#30203b 48%,#24182e 100%);
+  border:1px solid rgba(234,223,199,.22);
+  overflow:hidden;
+}
+.theater-v220:after{display:none}
+.character-showcase{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  min-height:330px;
+  overflow:hidden;
+  border-bottom:1px solid rgba(255,255,255,.12);
+  background:#21162a;
+}
+.character-panel{
+  position:relative;
+  width:auto;
+  max-width:none;
+  height:330px;
+  top:auto;
+  left:auto;
+  right:auto;
+  opacity:0;
+  overflow:hidden;
+  z-index:2;
+  filter:none;
+  transition:opacity .55s ease,transform .7s cubic-bezier(.2,.9,.2,1);
+}
+.character-panel:first-child{border-right:1px solid rgba(255,255,255,.12)}
+.character-panel img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.character-panel.character-devil{transform:translateX(-35px)}
+.character-panel.character-angel{transform:translateX(35px)}
+.character-panel.is-visible{opacity:1;transform:translateX(0)}
+.character-panel.character-devil img{object-position:50% 50%}
+.character-panel.character-angel img{object-position:50% 50%}
+.character-panel .character-name{
+  position:absolute;
+  left:50%;
+  right:auto;
+  bottom:14px;
+  transform:translateX(-50%);
+  padding:7px 14px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.05em;
+  white-space:nowrap;
+  box-shadow:0 8px 22px rgba(0,0,0,.24);
+}
+.character-panel.character-devil .character-name{
+  color:#fff;
+  background:rgba(61,29,81,.92);
+}
+.character-panel.character-angel .character-name{
+  color:#66451f;
+  background:rgba(255,249,235,.94);
+}
+.theater-v220 .dialogue-track{
+  position:relative;
+  left:auto;
+  right:auto;
+  top:auto;
+  bottom:auto;
+  display:grid;
+  gap:12px;
+  padding:18px 14px 14px;
+  z-index:7;
+  pointer-events:none;
+}
+.theater-v220 .speech{
+  position:relative;
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  width:92%;
+  padding:13px 14px;
+  border-radius:22px;
+  opacity:0;
+  transform:translateY(14px) scale(.98);
+  transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.2,1);
+  box-shadow:0 12px 28px rgba(13,7,18,.20);
+  backdrop-filter:blur(14px);
+}
+.theater-v220 .speech.is-visible{opacity:1;transform:translateY(0) scale(1)}
+.theater-v220 .speech > div{min-width:0;flex:1}
+.theater-v220 .speech span{
+  display:block;
+  margin-bottom:5px;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.06em;
+}
+.theater-v220 .speech p{
+  margin:0;
+  font-size:13px;
+  line-height:1.62;
+  font-weight:680;
+}
+.theater-v220 .speech-avatar{
+  flex:0 0 46px;
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid rgba(255,255,255,.9);
+  box-shadow:0 6px 16px rgba(0,0,0,.20);
+}
+.theater-v220 .speech-devil{
+  justify-self:start;
+  color:#392047;
+  background:rgba(248,239,255,.97);
+  border:1px solid rgba(148,91,180,.22);
+}
+.theater-v220 .speech-devil .speech-avatar{object-position:48% 28%}
+.theater-v220 .speech-devil:before{
+  content:"";
+  position:absolute;
+  left:-8px;
+  top:26px;
+  margin:0;
+  border-width:8px 9px 8px 0;
+  border-style:solid;
+  border-color:transparent rgba(248,239,255,.97) transparent transparent;
+}
+.theater-v220 .speech-angel{
+  justify-self:end;
+  color:#594029;
+  background:rgba(255,251,239,.98);
+  border:1px solid rgba(209,164,86,.27);
+}
+.theater-v220 .speech-angel .speech-avatar{object-position:50% 26%}
+.theater-v220 .speech-angel:after{
+  content:"";
+  position:absolute;
+  right:-8px;
+  top:26px;
+  margin:0;
+  border-width:8px 0 8px 9px;
+  border-style:solid;
+  border-color:transparent transparent transparent rgba(255,251,239,.98);
+}
+.theater-v220 .theater-finale{
+  position:relative;
+  left:auto;
+  bottom:auto;
+  transform:translateY(12px);
+  margin:2px auto 0;
+  opacity:0;
+  width:max-content;
+  max-width:90%;
+  justify-content:center;
+  padding:9px 15px;
+  border:1px solid rgba(234,223,199,.20);
+  background:rgba(18,11,23,.54);
+  color:#fff7e8;
+}
+.theater-v220 .theater-finale.is-visible{opacity:1;transform:translateY(0)}
+.character-panel.is-talking{animation:mioTalkV220 1.2s ease-in-out infinite alternate}
+@keyframes mioTalkV220{
+  from{transform:translateY(0) scale(1)}
+  to{transform:translateY(-4px) scale(1.008)}
+}
+@media(max-width:390px){
+  .character-showcase{min-height:292px}
+  .character-panel{height:292px}
+  .theater-v220 .dialogue-track{padding:15px 10px 12px;gap:10px}
+  .theater-v220 .speech{width:94%;padding:11px 12px;gap:8px}
+  .theater-v220 .speech p{font-size:12px;line-height:1.58}
+  .theater-v220 .speech-avatar{width:42px;height:42px;flex-basis:42px}
+}
+@media(prefers-reduced-motion:reduce){
+  .character-panel,.theater-v220 .speech,.theater-v220 .theater-finale{transition:none}
+  .character-panel.is-talking{animation:none}
+}
