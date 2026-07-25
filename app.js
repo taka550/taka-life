@@ -104,14 +104,17 @@ $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${n
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.2.4.1 Gemini Mio =====
+// ===== Ver.3.0.0 AI Mio First Generation =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
-const GEMINI_MODEL_CACHE='takaLife.geminiModel.v1';
+const GEMINI_MODEL_CACHE='takaLife.geminiModel.v2';
+const MIO_MEMORY_STORAGE='takaLife.mioMemory.v1';
+const MAX_MIO_MEMORY=8;
+
 const GEMINI_MODEL_PREFERENCES=[
-  'gemini-3.6-flash',
   'gemini-3.5-flash',
-  'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
+  'gemini-3.6-flash',
+  'gemini-3-flash',
   'gemini-flash-latest'
 ];
 
@@ -125,19 +128,39 @@ function saveGeminiKey(){
     return false;
   }
   localStorage.setItem(GEMINI_KEY_STORAGE,key);
+  localStorage.removeItem(GEMINI_MODEL_CACHE);
   setMioAiStatus('このiPhoneにAPIキーを保存しました。','success');
   updateMioApiUi();
   return true;
 }
+function loadMioMemory(){
+  try{
+    const value=JSON.parse(localStorage.getItem(MIO_MEMORY_STORAGE)||'[]');
+    return Array.isArray(value)?value.slice(-MAX_MIO_MEMORY):[];
+  }catch(e){
+    return [];
+  }
+}
+function saveMioMemory(userMessage,result){
+  const memory=loadMioMemory();
+  memory.push({
+    at:new Date().toISOString(),
+    userMessage:String(userMessage||'').slice(0,240),
+    finale:String(result?.finale||'').slice(0,160)
+  });
+  localStorage.setItem(MIO_MEMORY_STORAGE,JSON.stringify(memory.slice(-MAX_MIO_MEMORY)));
+}
 function updateMioApiUi(){
   const saved=Boolean(getGeminiKey());
   if($('geminiApiKey')&&!$('geminiApiKey').value&&saved)$('geminiApiKey').value=getGeminiKey();
+
   const preview=$('mioContextPreview');
   const cur=latest();
+  const memoryCount=loadMioMemory().length;
   if(preview){
     preview.textContent=cur
-      ? `最新記録：${cur.date} ${cur.period} ${Number(cur.weight).toFixed(1)}kg ／ 目標 ${state.settings.targetWeight}kg`
-      : '体重記録はまだありません。相談内容だけで会話を作ります。';
+      ? `最新記録：${cur.date} ${cur.period} ${Number(cur.weight).toFixed(1)}kg ／ 目標 ${state.settings.targetWeight}kg ／ 最近の会話メモ ${memoryCount}件`
+      : `体重記録はまだありません。相談内容と最近の会話メモ ${memoryCount}件を使います。`;
   }
 }
 function setMioAiStatus(message,type=''){
@@ -157,58 +180,100 @@ function closeMioChat(){
   const panel=$('mioAiPanel');
   if(panel)panel.hidden=true;
 }
+function calcTrend(records){
+  if(records.length<2)return null;
+  const first=Number(records[0].weight);
+  const last=Number(records[records.length-1].weight);
+  if(!Number.isFinite(first)||!Number.isFinite(last))return null;
+  return Number((last-first).toFixed(1));
+}
+function localDayPart(date){
+  const hour=date.getHours();
+  if(hour<10)return '朝';
+  if(hour<16)return '昼';
+  return '夜';
+}
 function buildMioContext(userText){
   sortRecords();
   const cur=latest();
-  const recent=state.records.slice(-5).map(r=>({
+  const recent=state.records.slice(-7).map(r=>({
     date:r.date,
     period:r.period,
+    time:r.time||'',
     weight:Number(r.weight),
     memo:r.memo||''
   }));
+  const now=new Date();
+  const latestWeight=cur?Number(cur.weight):null;
+  const heightM=Number(state.settings.heightCm)/100;
+  const bmi=latestWeight&&heightM?Number((latestWeight/(heightM*heightM)).toFixed(1)):null;
+
   return {
-    now:new Date().toLocaleString('ja-JP'),
-    heightCm:state.settings.heightCm,
-    targetWeight:state.settings.targetWeight,
-    latest:cur?{
-      date:cur.date,period:cur.period,time:cur.time||'',
-      weight:Number(cur.weight),memo:cur.memo||''
-    }:null,
-    recent,
+    user:{
+      name:'タカ',
+      heightCm:state.settings.heightCm,
+      targetWeightKg:state.settings.targetWeight,
+      healthPriority:'健康第一。無理な減量や断定的な医療助言は避ける。'
+    },
+    currentTime:{
+      local:new Intl.DateTimeFormat('ja-JP',{
+        dateStyle:'full',timeStyle:'short'
+      }).format(now),
+      weekday:new Intl.DateTimeFormat('ja-JP',{weekday:'long'}).format(now),
+      dayPart:localDayPart(now)
+    },
+    weight:{
+      latest:cur?{
+        date:cur.date,period:cur.period,time:cur.time||'',
+        kg:latestWeight,memo:cur.memo||'',bmi
+      }:null,
+      targetKg:state.settings.targetWeight,
+      differenceToTargetKg:latestWeight!==null
+        ? Number((latestWeight-Number(state.settings.targetWeight)).toFixed(1))
+        : null,
+      recentChangeKg:calcTrend(recent),
+      recentRecords:recent
+    },
+    recentMioConversations:loadMioMemory().slice(-5),
     userMessage:userText
   };
 }
 function mioSystemPrompt(context){
   return `あなたはTaka-Lifeアプリ内の二人のキャラクターです。
-ユーザー名はタカ。日本語で、親しみのある自然な会話を作ってください。
+ユーザー名はタカ。日本語で、親しみのある自然な「ミオ劇場」を作ってください。
 
 【キャラクター】
-デビルミオ：少し茶目っ気があり、関西弁を軽く使う。誘惑役だが意地悪ではなく、タカの味方。短くテンポよく話す。
-エンジェルミオ：優しく落ち着いた標準語。健康第一で、責めず、無理を勧めず、現実的に支える。
-二人は別人です。
+デビルミオ：
+- 茶目っ気があり、関西弁を軽く使う
+- 誘惑役だが、意地悪ではなくタカの味方
+- 元気で短く、会話にツッコミやユーモアを入れる
 
-【重要】
-- 医療診断はしない。
-- 急激な減量、絶食、過度な運動を勧めない。
-- 体重の一回の増減だけで断定しない。
-- 説教調にしない。
-- 各セリフは45文字から90文字程度。
-- ユーザーの相談内容と記録を自然に反映する。
-- JSON以外は絶対に出力しない。
+エンジェルミオ：
+- 優しく落ち着いた標準語
+- 健康第一で、責めず、現実的に支える
+- タカの努力や疲れを自然に受け止める
 
-【返却JSON】
+【会話ルール】
+- 二人は別人として掛け合う
+- 最近の会話メモは、自然に関係する場合だけ参照する
+- 体重の一回の増減だけで良し悪しを断定しない
+- 医療診断、薬の変更、絶食、急激な減量、過度な運動を勧めない
+- 説教調、過剰な褒め方、同じ表現の繰り返しを避ける
+- 各セリフは35文字から100文字程度
+- JSON以外の前置き、Markdown、コードフェンスは出力しない
+
+【必須JSON形式】
 {
   "devil1":"デビルミオの最初のセリフ",
-  "angel1":"エンジェルミオの最初のセリフ",
+  "angel1":"エンジェルミオの返答",
   "devil2":"デビルミオの次のセリフ",
   "angel2":"エンジェルミオの締めのセリフ",
   "finale":"二人からの短い締め"
 }
 
-【今日の情報】
+【タカの現在情報】
 ${JSON.stringify(context,null,2)}`;
 }
-
 async function getAvailableGeminiModel(forceRefresh=false){
   const key=getGeminiKey();
   if(!key)throw new Error('APIキーが未設定です。');
@@ -234,11 +299,17 @@ async function getAvailableGeminiModel(forceRefresh=false){
       Array.isArray(model.supportedGenerationMethods) &&
       model.supportedGenerationMethods.includes('generateContent')
     )
-    .map(model=>String(model.name||'').replace(/^models\//,''));
+    .map(model=>String(model.name||'').replace(/^models\//,''))
+    .filter(name=>
+      /gemini/i.test(name) &&
+      !/embedding|image|imagen|veo|tts|audio|live|robotics|research/i.test(name)
+    );
 
-  const selected=GEMINI_MODEL_PREFERENCES.find(name=>available.includes(name))
-    || available.find(name=>/^gemini-3(\.|-)/.test(name) && /flash/.test(name) && !/image|live|audio/.test(name))
-    || available.find(name=>/gemini/.test(name) && /flash/.test(name) && !/image|live|audio|embedding/.test(name));
+  const selected=
+    GEMINI_MODEL_PREFERENCES.find(name=>available.includes(name))
+    || available.find(name=>/flash/i.test(name) && !/preview|exp/i.test(name))
+    || available.find(name=>/flash/i.test(name))
+    || available[0];
 
   if(!selected){
     throw new Error('このAPIキーで利用できる文章生成モデルが見つかりませんでした。');
@@ -247,33 +318,93 @@ async function getAvailableGeminiModel(forceRefresh=false){
   localStorage.setItem(GEMINI_MODEL_CACHE,selected);
   return selected;
 }
+function extractCandidateText(data){
+  const parts=data?.candidates?.[0]?.content?.parts;
+  if(!Array.isArray(parts))return '';
+  return parts
+    .filter(part=>typeof part?.text==='string' && !part?.thought)
+    .map(part=>part.text)
+    .join('')
+    .trim();
+}
+function findBalancedJsonObject(text){
+  let start=-1,depth=0,inString=false,escaped=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(start<0){
+      if(ch==='{'){start=i;depth=1}
+      continue;
+    }
+    if(inString){
+      if(escaped)escaped=false;
+      else if(ch==='\\')escaped=true;
+      else if(ch==='"')inString=false;
+      continue;
+    }
+    if(ch==='"'){inString=true;continue}
+    if(ch==='{')depth++;
+    if(ch==='}'){
+      depth--;
+      if(depth===0)return text.slice(start,i+1);
+    }
+  }
+  return '';
+}
+function normalizeJsonText(text){
+  return String(text||'')
+    .replace(/^\uFEFF/,'')
+    .replace(/```(?:json)?/gi,'')
+    .replace(/```/g,'')
+    .trim();
+}
+function parseMioResult(text){
+  const normalized=normalizeJsonText(text);
+  const attempts=[normalized,findBalancedJsonObject(normalized)].filter(Boolean);
+  let lastError=null;
 
-async function callGeminiForMio(userText,testing=false){
-  const key=getGeminiKey();
-  if(!key)throw new Error('APIキーが未設定です。');
-  const context=buildMioContext(userText);
-  const model=await getAvailableGeminiModel();
-  const body={
+  for(const candidate of attempts){
+    try{
+      let parsed=JSON.parse(candidate);
+      if(parsed?.mioTheater && typeof parsed.mioTheater==='object'){
+        parsed=parsed.mioTheater;
+      }
+      const keys=['devil1','angel1','devil2','angel2','finale'];
+      const valid=keys.every(k=>typeof parsed?.[k]==='string' && parsed[k].trim());
+      if(valid){
+        return Object.fromEntries(keys.map(k=>[k,parsed[k].trim()]));
+      }
+    }catch(err){
+      lastError=err;
+    }
+  }
+  const preview=normalized.replace(/\s+/g,' ').slice(0,110);
+  throw new Error(`返事を会話形式に変換できませんでした${preview?`（返答冒頭：${preview}）`:''}`);
+}
+function buildGenerateBody(context,useSchema=true){
+  const generationConfig={maxOutputTokens:900};
+  if(useSchema){
+    generationConfig.responseMimeType='application/json';
+    generationConfig.responseSchema={
+      type:'OBJECT',
+      properties:{
+        devil1:{type:'STRING'},
+        angel1:{type:'STRING'},
+        devil2:{type:'STRING'},
+        angel2:{type:'STRING'},
+        finale:{type:'STRING'}
+      },
+      required:['devil1','angel1','devil2','angel2','finale']
+    };
+  }
+  return {
     contents:[{
       role:'user',
       parts:[{text:mioSystemPrompt(context)}]
     }],
-    generationConfig:{
-      maxOutputTokens:700,
-      responseMimeType:'application/json',
-      responseSchema:{
-        type:'OBJECT',
-        properties:{
-          devil1:{type:'STRING'},
-          angel1:{type:'STRING'},
-          devil2:{type:'STRING'},
-          angel2:{type:'STRING'},
-          finale:{type:'STRING'}
-        },
-        required:['devil1','angel1','devil2','angel2','finale']
-      }
-    }
+    generationConfig
   };
+}
+async function requestGemini(model,key,context,useSchema){
   const response=await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {
@@ -282,33 +413,56 @@ async function callGeminiForMio(userText,testing=false){
         'Content-Type':'application/json',
         'x-goog-api-key':key
       },
-      body:JSON.stringify(body)
+      body:JSON.stringify(buildGenerateBody(context,useSchema))
     }
   );
   const data=await response.json().catch(()=>({}));
   if(!response.ok){
     const detail=data?.error?.message||`HTTP ${response.status}`;
-    const unavailable=response.status===404 || /no longer available|not found|not supported/i.test(detail);
-    if(unavailable && !testing){
-      localStorage.removeItem(GEMINI_MODEL_CACHE);
-      return callGeminiForMio(userText,true);
+    const err=new Error(detail);
+    err.status=response.status;
+    throw err;
+  }
+  return data;
+}
+async function callGeminiForMio(userText,options={}){
+  const key=getGeminiKey();
+  if(!key)throw new Error('APIキーが未設定です。');
+
+  const context=buildMioContext(userText);
+  let model=await getAvailableGeminiModel(Boolean(options.forceModelRefresh));
+
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      const useSchema=attempt<2;
+      const data=await requestGemini(model,key,context,useSchema);
+      const text=extractCandidateText(data);
+      if(!text)throw new Error('Geminiから文章の返事がありませんでした。');
+      return parseMioResult(text);
+    }catch(err){
+      const modelUnavailable=err.status===404 ||
+        /no longer available|not found|not supported for generatecontent/i.test(err.message||'');
+
+      if(modelUnavailable && attempt===0){
+        localStorage.removeItem(GEMINI_MODEL_CACHE);
+        model=await getAvailableGeminiModel(true);
+        continue;
+      }
+
+      const schemaIssue=err.status===400 &&
+        /schema|responsemime|response.*format|generationconfig/i.test(err.message||'');
+
+      if(schemaIssue && attempt<2){
+        continue;
+      }
+
+      if(/返事を会話形式に変換できません/.test(err.message||'') && attempt<2){
+        continue;
+      }
+      throw err;
     }
-    throw new Error(detail);
   }
-  const text=data?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('').trim();
-  if(!text)throw new Error('Geminiから返事がありませんでした。');
-  let result;
-  try{
-    result=JSON.parse(text);
-  }catch(e){
-    const match=text.match(/\{[\s\S]*\}/);
-    if(!match)throw new Error('返事の形式を読み取れませんでした。');
-    result=JSON.parse(match[0]);
-  }
-  ['devil1','angel1','devil2','angel2','finale'].forEach(k=>{
-    if(typeof result[k]!=='string'||!result[k].trim())throw new Error('返事の一部が不足しています。');
-  });
-  return result;
+  throw new Error('Geminiの返答を読み取れませんでした。もう一度お試しください。');
 }
 function applyAiMioTheater(result){
   clearTheaterTimers();
@@ -326,8 +480,11 @@ async function runGeminiTest(){
   const btn=$('testGeminiBtn');
   try{
     if(btn){btn.disabled=true;btn.textContent='接続中…'}
-    setMioAiStatus('Geminiへ接続しています…');
-    const result=await callGeminiForMio('接続テストです。短く明るく挨拶してください。',true);
+    setMioAiStatus('Geminiへ接続し、会話形式を確認しています…');
+    const result=await callGeminiForMio(
+      '接続テストです。二人で短く明るく挨拶してください。',
+      {forceModelRefresh:true}
+    );
     const activeModel=localStorage.getItem(GEMINI_MODEL_CACHE)||'Gemini';
     setMioAiStatus(`接続成功！ ${activeModel} とミオ劇場がつながりました。`,'success');
     $('devilText1').textContent=result.devil1;
@@ -339,19 +496,24 @@ async function runGeminiTest(){
   }
 }
 async function askMio(){
-  const question=$('mioQuestion')?.value.trim()||'今日の記録を見て、ひとことお願いします。';
+  const question=$('mioQuestion')?.value.trim()||
+    '今日の記録を見て、二人からひとことお願いします。';
+
   if(!getGeminiKey()){
     setMioAiStatus('先にAPIキーを入力して保存してください。','error');
     $('geminiApiKey')?.focus();
     return;
   }
+
   const btn=$('askMioBtn');
   try{
     if(btn){btn.disabled=true;btn.textContent='ミオたちが考え中…'}
-    setMioAiStatus('今日のミオ劇場を作っています…');
+    setMioAiStatus('体重記録と最近の会話を見ながら、今日のミオ劇場を作っています…');
     const result=await callGeminiForMio(question);
+    saveMioMemory(question,result);
     applyAiMioTheater(result);
     setMioAiStatus('');
+    updateMioApiUi();
   }catch(err){
     setMioAiStatus(`作成できませんでした：${err.message}`,'error');
   }finally{
@@ -373,7 +535,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
 
 document.querySelectorAll('[data-scroll]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.scroll;if(t==='top'){window.scrollTo({top:0,behavior:'smooth'});return}const targets={record:'#recordSection',mio:'#mioTheater',history:'#historySection'};document.querySelector(targets[t]).scrollIntoView({behavior:'smooth',block:'start'});if(t==='record')setTimeout(()=>$('weightInput').focus(),450)}));
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')}});
-const APP_VERSION='2.4.1';
+const APP_VERSION='3.0.0';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
