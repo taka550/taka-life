@@ -460,3 +460,127 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
     animation:none!important;
   }
 }
+
+
+/* =========================================================
+   Ver.2.4.0 — Gemini Mio
+   API key remains local to this browser profile.
+   ========================================================= */
+.ai-theater-action{
+  background:linear-gradient(135deg,#fff2c9,#d9b76f);
+  color:#39281b;
+  box-shadow:0 9px 24px rgba(205,164,85,.24);
+}
+.mio-ai-panel{
+  margin-top:15px;
+  padding:18px;
+  border-radius:22px;
+  background:
+    radial-gradient(circle at 90% 0,rgba(223,189,116,.14),transparent 32%),
+    linear-gradient(180deg,rgba(255,251,241,.98),rgba(248,240,226,.98));
+  color:#33251e;
+  border:1px solid rgba(112,79,53,.14);
+  box-shadow:0 16px 38px rgba(34,22,17,.14);
+}
+.mio-ai-panel[hidden]{display:none}
+.mio-ai-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:16px;
+}
+.mio-ai-header h3{
+  margin:3px 0 0;
+  font-size:20px;
+  font-family:Georgia,"Yu Mincho",serif;
+}
+.mio-ai-close{
+  width:34px;
+  height:34px;
+  border:1px solid rgba(70,47,35,.15);
+  border-radius:50%;
+  background:rgba(255,255,255,.65);
+  color:#4c382c;
+  font-size:22px;
+  line-height:1;
+}
+.mio-api-setup,
+.mio-chat-area{
+  display:grid;
+  gap:10px;
+}
+.mio-api-setup{
+  margin-bottom:16px;
+  padding:14px;
+  border-radius:17px;
+  background:rgba(255,255,255,.62);
+  border:1px solid rgba(83,57,42,.10);
+}
+.mio-ai-panel label{
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
+.api-key-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+}
+.api-key-row input,
+.mio-chat-area textarea{
+  width:100%;
+  border:1px solid rgba(78,54,40,.18);
+  border-radius:14px;
+  background:#fff;
+  color:#30231c;
+  font:inherit;
+  box-sizing:border-box;
+}
+.api-key-row input{
+  min-height:45px;
+  padding:0 13px;
+}
+.mio-chat-area textarea{
+  padding:12px 13px;
+  resize:vertical;
+  line-height:1.55;
+}
+.compact-button{
+  min-width:58px;
+  padding:0 10px;
+}
+.mio-ai-note{
+  margin:0;
+  color:#74645b;
+  font-size:10px;
+  line-height:1.55;
+}
+.mio-ai-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+}
+.mio-ai-actions button,
+.mio-ask-button{
+  min-height:44px;
+}
+.mio-context-preview{
+  padding:10px 12px;
+  border-radius:13px;
+  background:rgba(61,39,76,.07);
+  color:#66566c;
+  font-size:10px;
+  line-height:1.5;
+}
+.mio-ai-status{
+  min-height:18px;
+  margin:0;
+  font-size:11px;
+}
+.mio-ai-status[data-type="success"]{color:#30714a}
+.mio-ai-status[data-type="error"]{color:#a23f42}
+@media(max-width:390px){
+  .mio-ai-panel{padding:14px}
+  .mio-ai-actions{grid-template-columns:1fr}
+}
