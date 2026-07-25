@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Taka-Life" />
-  <link rel="manifest" href="manifest.webmanifest?v=2.0.1" />
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.0.1" />
-  <link rel="stylesheet" href="styles.css?v=2.0.1" />
+  <link rel="manifest" href="manifest.webmanifest?v=2.1.0" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.1.0" />
+  <link rel="stylesheet" href="styles.css?v=2.1.0" />
   <title>Taka-Life｜Rich Life</title>
 </head>
 <body id="top">
@@ -31,24 +31,44 @@
       <p id="welcomeMessage">今日を、少し豊かに。</p>
     </section>
 
-    <section class="card mio-card" id="mioTheater">
+    <section class="card mio-card anime-theater" id="mioTheater">
       <div class="mio-heading">
         <div>
           <p class="eyebrow">MIO THEATER</p>
           <h2>今日のミオ劇場</h2>
         </div>
-        <span class="theater-badge">TODAY'S STORY</span>
+        <button id="replayTheaterBtn" class="theater-badge replay-badge" type="button" aria-label="ミオ劇場をもう一度再生">↻ REPLAY</button>
       </div>
-      <div class="mio-stage" aria-hidden="true">
-        <div class="mio-orb angel-orb">🌼</div>
-        <div class="stage-title"><span>Rich Life</span><strong>小さな一日も、物語になる。</strong></div>
-        <div class="mio-orb devil-orb">😈</div>
+
+      <div class="anime-stage" id="animeStage" aria-live="polite">
+        <div class="stage-glow stage-glow-angel"></div>
+        <div class="stage-glow stage-glow-devil"></div>
+        <div class="stage-curtain" aria-hidden="true"><span>✦</span><strong>今日の小さな物語</strong><span>✦</span></div>
+
+        <div class="character character-devil" id="devilCharacter">
+          <img src="mio-devil.webp?v=2.1.0" alt="少し小悪魔っぽく自由なデビルミオ" />
+          <span class="character-name">デビルミオ</span>
+        </div>
+        <div class="character character-angel" id="angelCharacter">
+          <img src="mio-angel.webp?v=2.1.0" alt="優しく健康を応援するエンジェルミオ" />
+          <span class="character-name">エンジェルミオ</span>
+        </div>
+
+        <div class="dialogue-track" id="dialogueTrack">
+          <article class="speech speech-devil" data-scene="0"><span>デビルミオ</span><p id="devilText1">さて、今日の数字はどうかな？</p></article>
+          <article class="speech speech-angel" data-scene="1"><span>エンジェルミオ</span><p id="angelText1">まずは落ち着いて見てみましょう。</p></article>
+          <article class="speech speech-devil" data-scene="2"><span>デビルミオ</span><p id="devilText2">ご褒美の相談も忘れずにね。</p></article>
+          <article class="speech speech-angel" data-scene="3"><span>エンジェルミオ</span><p id="angelText2">今日も健康第一でいきましょう。</p></article>
+        </div>
+
+        <div class="theater-finale" id="theaterFinale">
+          <span>😈</span><p id="finaleText">二人とも、タカの味方。</p><span>😇</span>
+        </div>
       </div>
-      <div class="mio-lines">
-        <article class="mio-line angel-line"><span>エンジェルミオ</span><p id="angelText">記録が入るとコメントするで。</p></article>
-        <article class="mio-line devil-line"><span>デビルミオ</span><p id="devilText">デビルも待機中や。</p></article>
+      <div class="theater-controls">
+        <button id="skipTheaterBtn" class="theater-action secondary-theater" type="button">まとめて表示</button>
+        <button id="copyChatBtn" class="theater-action" type="button">ChatGPTで本編をつくる</button>
       </div>
-      <button id="copyChatBtn" class="theater-action" type="button">ChatGPTで本編をつくる</button>
     </section>
 
     <section class="hero card balance-card">
@@ -148,7 +168,7 @@
         </div>
         <button id="checkUpdateBtn" class="ghost" type="button">更新を確認</button>
       </div>
-      <p class="version">Taka-Life Ver.2.0.1 · Project Rich Life</p>
+      <p class="version">Taka-Life Ver.2.1.0 · Anime Mio Theater</p>
     </section>
   </main>
 
@@ -159,6 +179,6 @@
     <a href="#historySection" data-scroll="history"><span>▤</span><small>履歴</small></a>
   </nav>
 
-  <script src="app.js?v=2.0.1"></script>
+  <script src="app.js?v=2.1.0"></script>
 </body>
 </html>

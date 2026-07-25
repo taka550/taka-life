@@ -26,7 +26,63 @@ ctx.font='11px -apple-system';ctx.strokeStyle='rgba(92,69,51,.13)';ctx.fillStyle
 ctx.strokeStyle='#a65747';ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(pad.l,y(state.settings.targetWeight));ctx.lineTo(w-pad.r,y(state.settings.targetWeight));ctx.stroke();ctx.setLineDash([]);
 function series(key,color,shape){ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=2.5;ctx.beginPath();let started=false;days.forEach((d,i)=>{const v=d[key];if(v==null)return;if(!started){ctx.moveTo(x(i),y(v));started=true}else ctx.lineTo(x(i),y(v))});ctx.stroke();days.forEach((d,i)=>{const v=d[key];if(v==null)return;ctx.beginPath();if(shape==='diamond'){ctx.moveTo(x(i),y(v)-4);ctx.lineTo(x(i)+4,y(v));ctx.lineTo(x(i),y(v)+4);ctx.lineTo(x(i)-4,y(v));ctx.closePath()}else ctx.arc(x(i),y(v),3.5,0,Math.PI*2);ctx.fill()})}
 series('朝','#6f7652','circle');series('夜','#8c625d','diamond');const labelEvery=Math.max(1,Math.ceil(days.length/6));days.forEach((d,i)=>{if(i%labelEvery===0||i===days.length-1){ctx.save();ctx.translate(x(i),h-8);ctx.rotate(-.35);ctx.fillStyle='#827469';ctx.fillText(d.date.slice(5).replace('-','/'),-10,0);ctx.restore()}})}
-function renderMio(){const cur=latest(),prev=state.records.at(-2);if(!cur)return;const diff=prev?cur.weight-prev.weight:0;let angel,devil;if(cur.weight<=state.settings.targetWeight){angel='目標体重に到達中。ここまでの積み重ね、ちゃんと数字に出てるね。次は無理せず定着させよう 🌼';devil='達成した瞬間に祝勝会を三日連続開催するなよ。85kg台を通常運転にしてからや 😈'}else if(diff<=-.5){angel='しっかり下がったね。ただ、一日の変化より続けて記録できていることの方が大事やで 🌼';devil='減ったからってチョコパン2個は計算が合わん。数字は褒める、宴会は却下 😈'}else if(diff>=.5){angel='少し増えても、水分や食事で動く範囲。今日だけで判断せず、次の記録まで淡々といこう 🌼';devil='体重計は敵ちゃうで。見なかったことにする作戦が一番あかん。記録したから今日は合格 😈'}else{angel='大きく動かない日も、記録を続けた時点で前進。安定は立派な成果やで 🌼';devil='派手な減量劇は要らん。地味に続ける人が最後に勝つ。珍しく真面目なデビルや 😈'}$('angelText').textContent=angel;$('devilText').textContent=devil}
+let theaterTimers=[];
+function clearTheaterTimers(){theaterTimers.forEach(clearTimeout);theaterTimers=[]}
+function theaterScenes(){
+  return [...document.querySelectorAll('.speech')];
+}
+function showAllTheater(){
+  clearTheaterTimers();
+  $('angelCharacter')?.classList.add('is-visible');
+  $('devilCharacter')?.classList.add('is-visible');
+  theaterScenes().forEach(el=>el.classList.add('is-visible'));
+  $('theaterFinale')?.classList.add('is-visible');
+  $('angelCharacter')?.classList.remove('is-talking');
+  $('devilCharacter')?.classList.remove('is-talking');
+}
+function playTheater(){
+  clearTheaterTimers();
+  const angel=$('angelCharacter'),devil=$('devilCharacter'),finale=$('theaterFinale');
+  const scenes=theaterScenes();
+  [angel,devil].forEach(el=>el?.classList.remove('is-visible','is-talking'));
+  scenes.forEach(el=>el.classList.remove('is-visible'));
+  finale?.classList.remove('is-visible');
+  theaterTimers.push(setTimeout(()=>devil?.classList.add('is-visible'),220));
+  theaterTimers.push(setTimeout(()=>{scenes[0]?.classList.add('is-visible');devil?.classList.add('is-talking')},720));
+  theaterTimers.push(setTimeout(()=>{devil?.classList.remove('is-talking');angel?.classList.add('is-visible')},1900));
+  theaterTimers.push(setTimeout(()=>{scenes[1]?.classList.add('is-visible');angel?.classList.add('is-talking')},2400));
+  theaterTimers.push(setTimeout(()=>{angel?.classList.remove('is-talking');scenes[2]?.classList.add('is-visible');devil?.classList.add('is-talking')},3900));
+  theaterTimers.push(setTimeout(()=>{devil?.classList.remove('is-talking');scenes[3]?.classList.add('is-visible');angel?.classList.add('is-talking')},5400));
+  theaterTimers.push(setTimeout(()=>{angel?.classList.remove('is-talking');finale?.classList.add('is-visible')},7000));
+}
+function renderMio(){
+  const cur=latest(),prev=state.records.at(-2);
+  if(!cur){
+    $('devilText1').textContent='まだ記録がないみたい。最初の一歩、待ってるで。';
+    $('angelText1').textContent='数字より、まず記録を始めることが大切です。';
+    $('devilText2').textContent='一回入れたら、うちらの出番やな。';
+    $('angelText2').textContent='今日も健康第一で、無理なく始めましょう。';
+    $('finaleText').textContent='記録した日から、物語が始まる。';
+    playTheater();
+    return;
+  }
+  const diff=prev?cur.weight-prev.weight:0;
+  let lines;
+  if(cur.weight<=state.settings.targetWeight){
+    lines=['おっ、目標ラインに到達してるやん。祝勝会の準備する？','ここまでの積み重ねが数字に表れましたね。まずは本当にお疲れさま。','三日連続の宴会は却下されそうやな。でも今日は少しくらい喜ぼう。','達成後は無理に減らさず、心地よく続けられる形で定着させましょう。'];
+  }else if(diff<=-.5){
+    lines=[`前回から${Math.abs(diff).toFixed(1)}kgダウン。これはニヤけてもええ数字やな。`,'しっかり下がりましたね。ただ、一日の数字だけでなく記録を続けていることが一番の成果です。','ほなチョコパン二個でお祝い……は、計算が合わんか。','焦らず、水分と食事を整えて。今日も健康第一でいきましょう。'];
+  }else if(diff>=.5){
+    lines=[`前回から${diff.toFixed(1)}kgアップ。体重計を見なかったことにする？`,'水分や食事のタイミングでも動く範囲です。今日だけで判断しなくて大丈夫。','ちゃんと記録した時点で、逃げてへん。そこは合格や。','次の記録まで淡々と。無理な調整はせず、いつもの生活へ戻しましょう。'];
+  }else{
+    lines=['今日は大きな変化なし。派手さはないけど、こういう日が強いねん。','安定している日も立派な前進です。続けられていることを大切にしましょう。','珍しく真面目なこと言うけど、地味に続ける人が最後に勝つで。','今日も無理せず、一歩ずつ。二人でタカを応援しています。'];
+  }
+  $('devilText1').textContent=lines[0];$('angelText1').textContent=lines[1];$('devilText2').textContent=lines[2];$('angelText2').textContent=lines[3];
+  $('finaleText').textContent=`最新 ${cur.weight.toFixed(1)}kg。二人とも、タカの味方。`;
+  playTheater();
+}
+$('replayTheaterBtn')?.addEventListener('click',playTheater);
+$('skipTheaterBtn')?.addEventListener('click',showAllTheater);
 $('weightForm').addEventListener('submit',e=>{e.preventDefault();const weight=Number($('weightInput').value),date=$('dateInput').value,time=$('timeInput').value,period=$('periodInput').value==='auto'?detectPeriod(time):$('periodInput').value,memo=$('memoInput').value.trim();if(!date||!time||!Number.isFinite(weight)){return}const existing=state.records.find(r=>r.date===date&&r.period===period);if(existing){Object.assign(existing,{time,weight,memo,createdAt:`${date}T${time}:00`})}else{state.records.push({id:Date.now(),date,time,period,weight,memo,createdAt:`${date}T${time}:00`})}saveState();$('weightInput').value='';$('memoInput').value='';$('saveMessage').textContent=existing?`${date} ${period}の記録を上書きしたで。`:`${date} ${period}に記録したで。`;render()});
 $('nowBtn').addEventListener('click',setNow);$('showAllBtn').addEventListener('click',()=>{showAll=!showAll;renderHistory()});$('rangeSelect').addEventListener('change',renderChart);window.addEventListener('resize',renderChart);
 function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),500)}
@@ -36,7 +92,7 @@ $('importFile').addEventListener('change',async e=>{const file=e.target.files[0]
 $('copyChatBtn').addEventListener('click',async()=>{const cur=latest(),recent=state.records.slice(-7).map(r=>`${r.date} ${r.period} ${r.weight}kg`).join('\n');const text=`体重管理アプリの最新データです。\n最新: ${cur.date} ${cur.time||''} ${cur.period} ${cur.weight}kg\n身長: ${state.settings.heightCm}cm\n目標: ${state.settings.targetWeight}kg\n直近記録:\n${recent}\n\nこの内容を分析して、正式ルールに沿った「ミオ劇場」を作って。健康第一で、エンジェルミオとデビルミオを登場させて。`;try{await navigator.clipboard.writeText(text);$('copyChatBtn').textContent='コピーしたで ✓';setTimeout(()=>$('copyChatBtn').textContent='ChatGPTに送る文章をコピー',1800)}catch(e){prompt('この文章をコピーしてChatGPTへ貼り付けてください',text)}});
 document.querySelectorAll('[data-scroll]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.scroll;if(t==='top'){window.scrollTo({top:0,behavior:'smooth'});return}const targets={record:'#recordSection',mio:'#mioTheater',history:'#historySection'};document.querySelector(targets[t]).scrollIntoView({behavior:'smooth',block:'start'});if(t==='record')setTimeout(()=>$('weightInput').focus(),450)}));
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')}});
-const APP_VERSION='2.0.1';
+const APP_VERSION='2.1.0';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
