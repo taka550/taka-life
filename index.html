@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Taka-Life" />
-  <link rel="manifest" href="manifest.webmanifest?v=2.6.0" />
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.6.0" />
-  <link rel="stylesheet" href="styles.css?v=2.6.0" />
+  <link rel="manifest" href="manifest.webmanifest?v=2.6.1" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.6.1" />
+  <link rel="stylesheet" href="styles.css?v=2.6.1" />
   <title>Taka-Life｜Rich Life</title>
 </head>
 <body id="top">
@@ -47,31 +47,31 @@
         <div class="theater-time-chip" id="theaterTimeChip" aria-hidden="true">NIGHT THEATER</div>
         <div class="character-showcase" aria-label="デビルミオとエンジェルミオ">
           <div class="character-panel character-devil" id="devilCharacter">
-            <img src="mio-devil-v220.webp?v=2.6.0" alt="少し小悪魔っぽく自由なデビルミオ" />
+            <img src="mio-devil-v220.webp?v=2.6.1" alt="少し小悪魔っぽく自由なデビルミオ" />
             <span class="character-name">デビルミオ</span>
           </div>
           <div class="character-panel character-angel" id="angelCharacter">
-            <img src="mio-angel-v220.webp?v=2.6.0" alt="優しく健康を応援するエンジェルミオ" />
+            <img src="mio-angel-v220.webp?v=2.6.1" alt="優しく健康を応援するエンジェルミオ" />
             <span class="character-name">エンジェルミオ</span>
           </div>
         </div>
 
         <div class="dialogue-track" id="dialogueTrack">
           <article class="speech speech-devil" data-scene="0">
-            <img class="speech-avatar" src="mio-devil-v220.webp?v=2.6.0" alt="" aria-hidden="true" />
+            <img class="speech-avatar" src="mio-devil-v220.webp?v=2.6.1" alt="" aria-hidden="true" />
             <div><span>デビルミオ</span><p id="devilText1">さて、今日の数字はどうかな？</p></div>
           </article>
           <article class="speech speech-angel" data-scene="1">
             <div><span>エンジェルミオ</span><p id="angelText1">まずは落ち着いて見てみましょう。</p></div>
-            <img class="speech-avatar" src="mio-angel-v220.webp?v=2.6.0" alt="" aria-hidden="true" />
+            <img class="speech-avatar" src="mio-angel-v220.webp?v=2.6.1" alt="" aria-hidden="true" />
           </article>
           <article class="speech speech-devil" data-scene="2">
-            <img class="speech-avatar" src="mio-devil-v220.webp?v=2.6.0" alt="" aria-hidden="true" />
+            <img class="speech-avatar" src="mio-devil-v220.webp?v=2.6.1" alt="" aria-hidden="true" />
             <div><span>デビルミオ</span><p id="devilText2">ご褒美の相談も忘れずにね。</p></div>
           </article>
           <article class="speech speech-angel" data-scene="3">
             <div><span>エンジェルミオ</span><p id="angelText2">今日も健康第一でいきましょう。</p></div>
-            <img class="speech-avatar" src="mio-angel-v220.webp?v=2.6.0" alt="" aria-hidden="true" />
+            <img class="speech-avatar" src="mio-angel-v220.webp?v=2.6.1" alt="" aria-hidden="true" />
           </article>
         </div>
 
@@ -114,6 +114,18 @@
           <div class="mio-context-preview" id="mioContextPreview"></div>
           <p class="mio-memory-note" id="mioMemoryNote">最近の相談は、このiPhone内だけでミオの会話メモとして使います。</p>
           <button id="askMioBtn" class="primary mio-ask-button" type="button">ミオ劇場をつくる</button>
+          <div class="gemini-usage-card" aria-label="Gemini利用回数の目安">
+            <div class="gemini-usage-head">
+              <span>今日のGemini利用</span>
+              <strong id="geminiUsageCount">0 / 20 回</strong>
+            </div>
+            <div id="geminiUsageTrack" id="geminiUsageTrack" class="gemini-usage-track" role="progressbar" aria-valuemin="0" aria-valuemax="20" aria-valuenow="0">
+              <div id="geminiUsageBar" class="gemini-usage-bar"></div>
+            </div>
+            <p id="geminiUsageNote" class="gemini-usage-note">あと約20回の目安です。</p>
+            <p class="gemini-usage-caption">アプリ内で数えた目安です。Google側の実際の残量とは異なる場合があります。</p>
+          </div>
+
           <p id="mioAiStatus" class="message mio-ai-status" role="status"></p>
         </div>
       </section>
@@ -216,7 +228,7 @@
         </div>
         <button id="checkUpdateBtn" class="ghost" type="button">更新を確認</button>
       </div>
-      <p class="version">Taka-Life Ver.2.6.0 · Natural Mio Theater</p>
+      <p class="version">Taka-Life Ver.2.6.1 · Natural Mio Theater</p>
     </section>
   </main>
 
@@ -227,6 +239,6 @@
     <a href="#historySection" data-scroll="history"><span>▤</span><small>履歴</small></a>
   </nav>
 
-  <script src="app.js?v=2.6.0"></script>
+  <script src="app.js?v=2.6.1"></script>
 </body>
 </html>

@@ -104,7 +104,7 @@ $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${n
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.2.6.0 AI Mio Service =====
+// ===== Ver.2.6.1 AI Mio Service =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v4';
 const MIO_MEMORY_STORAGE='takaLife.mioMemory.v1';
@@ -118,8 +118,63 @@ const GEMINI_MODEL_PREFERENCES=[
 ];
 const GEMINI_TEST_COOLDOWN_MS=30000;
 let lastGeminiTestAt=0;
+const GEMINI_USAGE_STORAGE='takaLife.geminiUsage.v1';
+const GEMINI_DAILY_LIMIT_ESTIMATE=20;
 
 
+function todayLocalKey(){
+  const now=new Date();
+  const year=now.getFullYear();
+  const month=String(now.getMonth()+1).padStart(2,'0');
+  const day=String(now.getDate()).padStart(2,'0');
+  return `${year}-${month}-${day}`;
+}
+function loadGeminiUsage(){
+  const today=todayLocalKey();
+  try{
+    const saved=JSON.parse(localStorage.getItem(GEMINI_USAGE_STORAGE)||'{}');
+    if(saved?.date===today&&Number.isFinite(Number(saved.count))){
+      return {date:today,count:Math.max(0,Number(saved.count))};
+    }
+  }catch(e){}
+  const fresh={date:today,count:0};
+  localStorage.setItem(GEMINI_USAGE_STORAGE,JSON.stringify(fresh));
+  return fresh;
+}
+function saveGeminiUsage(usage){
+  localStorage.setItem(GEMINI_USAGE_STORAGE,JSON.stringify(usage));
+}
+function incrementGeminiUsage(){
+  const usage=loadGeminiUsage();
+  usage.count+=1;
+  saveGeminiUsage(usage);
+  updateGeminiUsageUi();
+  return usage.count;
+}
+function updateGeminiUsageUi(){
+  const usage=loadGeminiUsage();
+  const count=usage.count;
+  const estimatedRemaining=Math.max(0,GEMINI_DAILY_LIMIT_ESTIMATE-count);
+  const percent=Math.min(100,Math.round((count/GEMINI_DAILY_LIMIT_ESTIMATE)*100));
+  const countEl=$('geminiUsageCount');
+  const trackEl=$('geminiUsageTrack');
+  const barEl=$('geminiUsageBar');
+  const noteEl=$('geminiUsageNote');
+
+  if(countEl)countEl.textContent=`${count} / ${GEMINI_DAILY_LIMIT_ESTIMATE} 回`;
+  if(trackEl)trackEl.setAttribute('aria-valuenow',String(Math.min(count,GEMINI_DAILY_LIMIT_ESTIMATE)));
+  if(barEl)barEl.style.width=`${percent}%`;
+
+  if(noteEl){
+    if(count>=GEMINI_DAILY_LIMIT_ESTIMATE){
+      noteEl.textContent='今日の無料枠を使い切っている可能性があります。';
+    }else if(count>=Math.ceil(GEMINI_DAILY_LIMIT_ESTIMATE*.75)){
+      noteEl.textContent=`あと約${estimatedRemaining}回の目安です。使いすぎに注意してください。`;
+    }else{
+      noteEl.textContent=`あと約${estimatedRemaining}回の目安です。`;
+    }
+  }
+}
 function getGeminiKey(){
   return localStorage.getItem(GEMINI_KEY_STORAGE)||'';
 }
@@ -170,6 +225,7 @@ function openMioChat(){
   if(!panel)return;
   panel.hidden=false;
   updateMioApiUi();
+  updateGeminiUsageUi();
   setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'center'}),50);
 }
 function closeMioChat(){const panel=$('mioAiPanel');if(panel)panel.hidden=true}
@@ -387,6 +443,7 @@ async function testGeminiConnectionOnly(){
   let model=await getAvailableGeminiModel(true);
   for(let attempt=0;attempt<2;attempt++){
     try{
+      incrementGeminiUsage();
       const data=await geminiFetch(`/models/${encodeURIComponent(model)}:generateContent`,key,{method:'POST',timeoutMs:12000,body:{contents:[{role:'user',parts:[{text:'接続確認です。「接続できました」とだけ返してください。'}]}],generationConfig:{maxOutputTokens:20,temperature:0}}});
       if(!extractCandidateText(data))throw new Error('Geminiから返事がありませんでした。');
       return {model,message:'接続できました'};
@@ -405,6 +462,7 @@ async function callGeminiForMio(userText,options={}){
 
   for(let attempt=0;attempt<2;attempt++){
     try{
+      incrementGeminiUsage();
       const data=await geminiFetch(`/models/${encodeURIComponent(model)}:generateContent`,key,{
         method:'POST',
         body:buildGenerateBody(context),
@@ -439,9 +497,13 @@ function friendlyGeminiError(err,action='作成'){
   if(err?.name==='AbortError')return `Geminiの返事が遅いため時間切れになりました。少し待ってからもう一度お試しください。`;
   if(err?.status===429){
     const wait=Number(err.retryAfterSeconds);
+    const usage=loadGeminiUsage();
+    const dailyHint=usage.count>=GEMINI_DAILY_LIMIT_ESTIMATE
+      ?' 今日の利用回数も目安上限に達しているため、日次枠の可能性があります。'
+      :'';
     return Number.isFinite(wait)&&wait>0
-      ?`Gemini無料枠の一時的な回数制限です。約${wait}秒待ってから、もう一度お試しください。`
-      :'Gemini無料枠の一時的な回数制限です。1分ほど待ってから、もう一度お試しください。';
+      ?`Gemini無料枠の制限です。約${wait}秒待ってから再試行してください。${dailyHint}`.trim()
+      :`Gemini無料枠の制限です。1分ほど待ってから再試行してください。${dailyHint}`.trim();
   }
   if(err?.status===401||err?.status===403)return 'APIキーまたは利用権限を確認してください。キーを保存し直してから接続テストをお試しください。';
   return `${action}できませんでした：${err?.message||'不明なエラー'}`;
@@ -508,7 +570,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.6.0';
+const APP_VERSION='2.6.1';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
@@ -561,3 +623,10 @@ if('serviceWorker' in navigator){
 }
 $('checkUpdateBtn')?.addEventListener('click',()=>checkForAppUpdate(true));
 setNow();render();
+updateGeminiUsageUi();
+
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')updateGeminiUsageUi();
+});
+window.addEventListener('focus',()=>updateGeminiUsageUi());
