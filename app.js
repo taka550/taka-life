@@ -44,18 +44,32 @@ function playTheater(){
   clearTheaterTimers();
   const angel=$('angelCharacter'),devil=$('devilCharacter'),finale=$('theaterFinale');
   const scenes=theaterScenes();
-  [angel,devil].forEach(el=>el?.classList.remove('is-visible','is-talking'));
+  [angel,devil].forEach(el=>el?.classList.remove('is-visible','is-talking','is-listening'));
   scenes.forEach(el=>el.classList.remove('is-visible'));
   finale?.classList.remove('is-visible');
   theaterTimers.push(setTimeout(()=>devil?.classList.add('is-visible'),220));
-  theaterTimers.push(setTimeout(()=>{scenes[0]?.classList.add('is-visible');devil?.classList.add('is-talking')},720));
-  theaterTimers.push(setTimeout(()=>{devil?.classList.remove('is-talking');angel?.classList.add('is-visible')},1900));
+  theaterTimers.push(setTimeout(()=>{scenes[0]?.classList.add('is-visible');devil?.classList.add('is-talking');angel?.classList.add('is-listening')},720));
+  theaterTimers.push(setTimeout(()=>{devil?.classList.remove('is-talking');devil?.classList.add('is-listening');angel?.classList.remove('is-listening');angel?.classList.add('is-visible')},1900));
   theaterTimers.push(setTimeout(()=>{scenes[1]?.classList.add('is-visible');angel?.classList.add('is-talking')},2400));
-  theaterTimers.push(setTimeout(()=>{angel?.classList.remove('is-talking');scenes[2]?.classList.add('is-visible');devil?.classList.add('is-talking')},3900));
-  theaterTimers.push(setTimeout(()=>{devil?.classList.remove('is-talking');scenes[3]?.classList.add('is-visible');angel?.classList.add('is-talking')},5400));
-  theaterTimers.push(setTimeout(()=>{angel?.classList.remove('is-talking');finale?.classList.add('is-visible')},7000));
+  theaterTimers.push(setTimeout(()=>{angel?.classList.remove('is-talking');angel?.classList.add('is-listening');devil?.classList.remove('is-listening');scenes[2]?.classList.add('is-visible');devil?.classList.add('is-talking')},3900));
+  theaterTimers.push(setTimeout(()=>{devil?.classList.remove('is-talking');devil?.classList.add('is-listening');angel?.classList.remove('is-listening');scenes[3]?.classList.add('is-visible');angel?.classList.add('is-talking')},5400));
+  theaterTimers.push(setTimeout(()=>{angel?.classList.remove('is-talking');angel?.classList.remove('is-listening');devil?.classList.remove('is-listening');finale?.classList.add('is-visible')},7000));
 }
+
+function applyTheaterTimeTheme(){
+  const stage=$('animeStage'),chip=$('theaterTimeChip');
+  if(!stage)return;
+  const h=new Date().getHours();
+  let theme='night',label='NIGHT THEATER';
+  if(h>=5&&h<11){theme='morning';label='MORNING THEATER'}
+  else if(h>=11&&h<17){theme='day';label='DAY THEATER'}
+  else if(h>=17&&h<20){theme='evening';label='EVENING THEATER'}
+  stage.dataset.timeTheme=theme;
+  if(chip)chip.textContent=label;
+}
+
 function renderMio(){
+  applyTheaterTimeTheme();
   const cur=latest(),prev=state.records.at(-2);
   if(!cur){
     $('devilText1').textContent='まだ記録がないみたい。最初の一歩、待ってるで。';
@@ -92,7 +106,7 @@ $('importFile').addEventListener('change',async e=>{const file=e.target.files[0]
 $('copyChatBtn').addEventListener('click',async()=>{const cur=latest(),recent=state.records.slice(-7).map(r=>`${r.date} ${r.period} ${r.weight}kg`).join('\n');const text=`体重管理アプリの最新データです。\n最新: ${cur.date} ${cur.time||''} ${cur.period} ${cur.weight}kg\n身長: ${state.settings.heightCm}cm\n目標: ${state.settings.targetWeight}kg\n直近記録:\n${recent}\n\nこの内容を分析して、正式ルールに沿った「ミオ劇場」を作って。健康第一で、エンジェルミオとデビルミオを登場させて。`;try{await navigator.clipboard.writeText(text);$('copyChatBtn').textContent='コピーしたで ✓';setTimeout(()=>$('copyChatBtn').textContent='ChatGPTに送る文章をコピー',1800)}catch(e){prompt('この文章をコピーしてChatGPTへ貼り付けてください',text)}});
 document.querySelectorAll('[data-scroll]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.scroll;if(t==='top'){window.scrollTo({top:0,behavior:'smooth'});return}const targets={record:'#recordSection',mio:'#mioTheater',history:'#historySection'};document.querySelector(targets[t]).scrollIntoView({behavior:'smooth',block:'start'});if(t==='record')setTimeout(()=>$('weightInput').focus(),450)}));
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')}});
-const APP_VERSION='2.2.0';
+const APP_VERSION='2.3.0';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
