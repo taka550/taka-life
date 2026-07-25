@@ -3,27 +3,57 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0b0b" />
+  <meta name="theme-color" content="#231b16" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Taka-Life" />
-  <link rel="manifest" href="manifest.webmanifest?v=1.1.1" />
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=1.1.1" />
-  <link rel="stylesheet" href="styles.css" />
-  <title>Taka-Life｜体重管理</title>
+  <link rel="manifest" href="manifest.webmanifest?v=2.0.0" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.0.0" />
+  <link rel="stylesheet" href="styles.css?v=2.0.0" />
+  <title>Taka-Life｜Rich Life</title>
 </head>
-<body>
+<body id="top">
   <header class="app-header">
-    <div>
-      <p class="eyebrow">TAKA-LIFE</p>
-      <h1>Taka-Life <small>体重管理</small></h1>
+    <div class="brand-lockup">
+      <span class="brand-mark" aria-hidden="true">TL</span>
+      <div>
+        <p class="eyebrow">RICH LIFE COMPANION</p>
+        <h1>Taka-Life</h1>
+      </div>
     </div>
     <button id="installBtn" class="ghost hidden" type="button">ホームに追加</button>
   </header>
 
   <main>
-    <section class="hero card">
-      <div>
+    <section class="welcome-panel" aria-labelledby="welcomeTitle">
+      <p id="timeGreeting" class="welcome-kicker">GOOD MORNING</p>
+      <h2 id="welcomeTitle">おはよう、タカ。</h2>
+      <p id="welcomeMessage">今日を、少し豊かに。</p>
+    </section>
+
+    <section class="card mio-card" id="mioTheater">
+      <div class="mio-heading">
+        <div>
+          <p class="eyebrow">MIO THEATER</p>
+          <h2>今日のミオ劇場</h2>
+        </div>
+        <span class="theater-badge">TODAY'S STORY</span>
+      </div>
+      <div class="mio-stage" aria-hidden="true">
+        <div class="mio-orb angel-orb">🌼</div>
+        <div class="stage-title"><span>Rich Life</span><strong>小さな一日も、物語になる。</strong></div>
+        <div class="mio-orb devil-orb">😈</div>
+      </div>
+      <div class="mio-lines">
+        <article class="mio-line angel-line"><span>エンジェルミオ</span><p id="angelText">記録が入るとコメントするで。</p></article>
+        <article class="mio-line devil-line"><span>デビルミオ</span><p id="devilText">デビルも待機中や。</p></article>
+      </div>
+      <button id="copyChatBtn" class="theater-action" type="button">ChatGPTで本編をつくる</button>
+    </section>
+
+    <section class="hero card balance-card">
+      <div class="balance-copy">
+        <p class="eyebrow">TODAY'S BALANCE</p>
         <p class="label">現在体重</p>
         <div class="weight-display"><span id="currentWeight">--</span><small>kg</small></div>
         <p id="currentMeta" class="muted">記録を読み込み中…</p>
@@ -31,11 +61,11 @@
       </div>
       <div class="goal-ring" aria-label="目標達成率">
         <span id="goalRate">0%</span>
-        <small>達成率</small>
+        <small>GOAL</small>
       </div>
     </section>
 
-    <section class="kpi-grid">
+    <section class="kpi-grid" aria-label="健康指標">
       <article class="card kpi"><span>前回比</span><strong id="diffPrev">--</strong></article>
       <article class="card kpi"><span>BMI</span><strong id="bmi">--</strong></article>
       <article class="card kpi"><span>目標まで</span><strong id="toGoal">--</strong></article>
@@ -51,9 +81,9 @@
       </div>
     </section>
 
-    <section class="card input-card">
+    <section class="card input-card" id="recordSection">
       <div class="section-heading">
-        <div><p class="eyebrow">RECORD</p><h2>体重を記録</h2></div>
+        <div><p class="eyebrow">RECORD</p><h2>今日を記録する</h2></div>
         <button id="nowBtn" class="ghost" type="button">現在日時</button>
       </div>
       <form id="weightForm">
@@ -72,37 +102,34 @@
             <option value="夜">夜</option>
           </select>
         </label>
-        <label>メモ（任意）<textarea id="memoInput" rows="2" placeholder="体調、食事、マンジャロなど"></textarea></label>
-        <button class="primary" type="submit">この体重を記録する</button>
+        <label>今日のひとこと（任意）<textarea id="memoInput" rows="2" placeholder="体調、食事、うれしかったことなど"></textarea></label>
+        <button class="primary" type="submit">記録して、ミオ劇場へ</button>
       </form>
       <p id="saveMessage" class="message" role="status"></p>
     </section>
 
-    <section class="card">
+    <section class="card chart-card">
       <div class="section-heading">
-        <div><p class="eyebrow">TREND</p><h2>体重推移</h2></div>
+        <div><p class="eyebrow">LIFE TREND</p><h2>体重の流れ</h2></div>
         <select id="rangeSelect" class="compact"><option value="7">7日</option><option value="30">30日</option><option value="all">全部</option></select>
       </div>
       <canvas id="chart" height="220" aria-label="体重推移グラフ"></canvas>
-      <div class="legend"><span>● 朝</span><span>◆ 夜</span><span>― 目標 85.0kg</span></div>
+      <div class="legend"><span><i class="legend-dot morning"></i>朝</span><span><i class="legend-dot night"></i>夜</span><span><i class="legend-line"></i>目標 85.0kg</span></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="historySection">
       <div class="section-heading">
-        <div><p class="eyebrow">HISTORY</p><h2>直近の記録</h2></div>
+        <div><p class="eyebrow">HISTORY</p><h2>最近の記録</h2></div>
         <button id="showAllBtn" class="ghost" type="button">すべて表示</button>
       </div>
       <div class="table-wrap"><table><thead><tr><th>日付</th><th>朝</th><th>昼</th><th>夜</th></tr></thead><tbody id="historyBody"></tbody></table></div>
     </section>
 
-    <section class="card mio-card">
-      <p class="eyebrow">MIO THEATER</p>
-      <h2>今日のミオ劇場</h2>
-      <div class="mio-lines">
-        <article><span>🌼 エンジェルミオ</span><p id="angelText">記録が入るとコメントするで。</p></article>
-        <article><span>😈 デビルミオ</span><p id="devilText">デビルも待機中や。</p></article>
-      </div>
-      <button id="copyChatBtn" class="secondary" type="button">ChatGPTに送る文章をコピー</button>
+    <section class="card journal-preview">
+      <p class="eyebrow">RICH LIFE JOURNAL</p>
+      <h2>今日の一日を、いつか物語に。</h2>
+      <p>体重、ひとこと、ミオとの会話。少しずつ積み重ねた記録が、読み返して楽しい日記になっていく。</p>
+      <span class="coming-soon">COMING SOON</span>
     </section>
 
     <section class="card settings-card">
@@ -112,17 +139,18 @@
         <button id="exportCsvBtn" class="secondary" type="button">Excel用CSVを書き出す</button>
         <label class="file-button">バックアップを読み込む<input id="importFile" type="file" accept=".json,.csv,text/csv,application/json" /></label>
       </div>
-      <p class="muted small">データはこの端末内に保存されます。アプリ更新では消えませんが、SafariのWebサイトデータ削除前にはJSONバックアップ推奨。</p>
-      <p class="version">Taka-Life Ver.1.1.1</p>
+      <p class="muted small">データはこの端末内に保存されます。SafariのWebサイトデータを削除する前には、JSONバックアップがおすすめです。</p>
+      <p class="version">Taka-Life Ver.2.0.0 · Project Rich Life</p>
     </section>
   </main>
 
-  <nav class="bottom-nav">
-    <a href="#top" data-scroll="top">ホーム</a>
-    <a href="#" data-scroll="record">記録</a>
-    <a href="#" data-scroll="history">履歴</a>
+  <nav class="bottom-nav" aria-label="メインメニュー">
+    <a href="#top" data-scroll="top"><span>⌂</span><small>Today</small></a>
+    <a href="#recordSection" data-scroll="record"><span>＋</span><small>記録</small></a>
+    <a href="#mioTheater" data-scroll="mio"><span>✦</span><small>ミオ</small></a>
+    <a href="#historySection" data-scroll="history"><span>▤</span><small>履歴</small></a>
   </nav>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.0.0"></script>
 </body>
 </html>
