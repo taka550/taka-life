@@ -104,11 +104,11 @@ $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${n
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.3.0.2 AI Mio First Generation =====
+// ===== Ver.3.1.0 AI Mio First Generation =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v2';
 const MIO_MEMORY_STORAGE='takaLife.mioMemory.v1';
-const MAX_MIO_MEMORY=8;
+const MAX_MIO_MEMORY=5;
 
 const GEMINI_MODEL_PREFERENCES=[
   'gemini-3.5-flash',
@@ -196,7 +196,7 @@ function localDayPart(date){
 function buildMioContext(userText){
   sortRecords();
   const cur=latest();
-  const recent=state.records.slice(-7).map(r=>({
+  const recent=state.records.slice(-5).map(r=>({
     date:r.date,
     period:r.period,
     time:r.time||'',
@@ -234,7 +234,7 @@ function buildMioContext(userText){
       recentChangeKg:calcTrend(recent),
       recentRecords:recent
     },
-    recentMioConversations:loadMioMemory().slice(-5),
+    recentMioConversations:loadMioMemory().slice(-3),
     userMessage:userText
   };
 }
@@ -259,7 +259,7 @@ function mioSystemPrompt(context){
 - 体重の一回の増減だけで良し悪しを断定しない
 - 医療診断、薬の変更、絶食、急激な減量、過度な運動を勧めない
 - 説教調、過剰な褒め方、同じ表現の繰り返しを避ける
-- 各セリフは35文字から100文字程度
+- 各セリフは25文字から70文字程度
 - Markdown、JSON、説明文、前置きは出力しない
 - 次の5つの見出しを、この順番・表記のまま必ず1回ずつ使う
 
@@ -268,13 +268,6 @@ ANGEL1:
 DEVIL2:
 ANGEL2:
 FINALE:
-
-【正しい出力例】
-DEVIL1: 今日はよう頑張ったやん。ちょっと肩の力抜いてもええで。
-ANGEL1: 疲れを感じられているのも大切なサインです。今夜はゆっくり休みましょう。
-DEVIL2: せやけど、ごほうびを盛りすぎるんはナシやで。ほどほどが一番や。
-ANGEL2: 今日できたことを一つ認めて、明日に疲れを持ち越さないようにしましょう。
-FINALE: 今夜は焦らず、ゆっくり整える時間にしよう。
 
 【タカの現在情報】
 ${JSON.stringify(context,null,2)}`;
@@ -418,12 +411,20 @@ function buildGenerateBody(context){
       parts:[{text:mioSystemPrompt(context)}]
     }],
     generationConfig:{
-      maxOutputTokens:900
+      maxOutputTokens:520
     }
   };
 }
+
+function fetchWithTimeout(url,options={},timeoutMs=18000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  return fetch(url,{...options,signal:controller.signal})
+    .finally(()=>clearTimeout(timer));
+}
+
 async function requestGemini(model,key,context){
-  const response=await fetch(
+  const response=await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
     {
       method:'POST',
@@ -432,7 +433,8 @@ async function requestGemini(model,key,context){
         'x-goog-api-key':key
       },
       body:JSON.stringify(buildGenerateBody(context))
-    }
+    },
+    18000
   );
   const data=await response.json().catch(()=>({}));
   if(!response.ok){
@@ -471,7 +473,8 @@ async function testGeminiConnectionOnly(){
           'x-goog-api-key':key
         },
         body:JSON.stringify(body)
-      }
+      },
+      12000
     );
 
     const data=await response.json().catch(()=>({}));
@@ -507,11 +510,11 @@ async function callGeminiForMio(userText,options={}){
   const context=buildMioContext(userText);
   let model=await getAvailableGeminiModel(Boolean(options.forceModelRefresh));
 
-  for(let attempt=0;attempt<3;attempt++){
+  for(let attempt=0;attempt<2;attempt++){
     try{
       const retryContext=attempt===0?context:{
         ...context,
-        formatReminder:'前の返答は読み取れませんでした。DEVIL1、ANGEL1、DEVIL2、ANGEL2、FINALEの5行だけを必ず返してください。'
+        formatReminder:'5行だけ返してください。見出しはDEVIL1、ANGEL1、DEVIL2、ANGEL2、FINALE。説明文は禁止。'
       };
       const data=await requestGemini(model,key,retryContext);
       const text=extractCandidateText(data);
@@ -527,7 +530,7 @@ async function callGeminiForMio(userText,options={}){
         continue;
       }
 
-      if(/5つのセリフを読み取れません/.test(err.message||'') && attempt<2){
+      if(/5つのセリフを読み取れません/.test(err.message||'') && attempt<1){
         continue;
       }
       throw err;
@@ -566,7 +569,7 @@ async function runGeminiTest(){
       'success'
     );
   }catch(err){
-    setMioAiStatus(`接続できませんでした：${err.message}`,'error');
+    setMioAiStatus(err?.name==='AbortError'?'接続確認が時間切れになりました。もう一度お試しください。':`接続できませんでした：${err.message}`,'error');
   }finally{
     if(btn){
       btn.disabled=false;
@@ -585,17 +588,24 @@ async function askMio(){
   }
 
   const btn=$('askMioBtn');
+  let seconds=0;
+  let timer=null;
   try{
     if(btn){btn.disabled=true;btn.textContent='ミオたちが考え中…'}
-    setMioAiStatus('体重記録と最近の会話を見ながら、5つのセリフを作っています…');
+    setMioAiStatus('ミオたちが会話を考えています… 0秒');
+    timer=setInterval(()=>{
+      seconds++;
+      setMioAiStatus(`ミオたちが会話を考えています… ${seconds}秒`);
+    },1000);
     const result=await callGeminiForMio(question);
     saveMioMemory(question,result);
     applyAiMioTheater(result);
     setMioAiStatus('');
     updateMioApiUi();
   }catch(err){
-    setMioAiStatus(`作成できませんでした：${err.message}`,'error');
+    setMioAiStatus(err?.name==='AbortError'?'Geminiの返事が遅いため時間切れになりました。もう一度お試しください。':`作成できませんでした：${err.message}`,'error');
   }finally{
+    if(timer)clearInterval(timer);
     if(btn){btn.disabled=false;btn.textContent='ミオ劇場をつくる'}
   }
 }
@@ -614,7 +624,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
 
 document.querySelectorAll('[data-scroll]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.scroll;if(t==='top'){window.scrollTo({top:0,behavior:'smooth'});return}const targets={record:'#recordSection',mio:'#mioTheater',history:'#historySection'};document.querySelector(targets[t]).scrollIntoView({behavior:'smooth',block:'start'});if(t==='record')setTimeout(()=>$('weightInput').focus(),450)}));
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')}});
-const APP_VERSION='3.0.2';
+const APP_VERSION='3.1.0';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
