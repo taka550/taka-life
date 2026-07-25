@@ -36,5 +36,56 @@ $('importFile').addEventListener('change',async e=>{const file=e.target.files[0]
 $('copyChatBtn').addEventListener('click',async()=>{const cur=latest(),recent=state.records.slice(-7).map(r=>`${r.date} ${r.period} ${r.weight}kg`).join('\n');const text=`体重管理アプリの最新データです。\n最新: ${cur.date} ${cur.time||''} ${cur.period} ${cur.weight}kg\n身長: ${state.settings.heightCm}cm\n目標: ${state.settings.targetWeight}kg\n直近記録:\n${recent}\n\nこの内容を分析して、正式ルールに沿った「ミオ劇場」を作って。健康第一で、エンジェルミオとデビルミオを登場させて。`;try{await navigator.clipboard.writeText(text);$('copyChatBtn').textContent='コピーしたで ✓';setTimeout(()=>$('copyChatBtn').textContent='ChatGPTに送る文章をコピー',1800)}catch(e){prompt('この文章をコピーしてChatGPTへ貼り付けてください',text)}});
 document.querySelectorAll('[data-scroll]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();const t=a.dataset.scroll;if(t==='top'){window.scrollTo({top:0,behavior:'smooth'});return}const targets={record:'#recordSection',mio:'#mioTheater',history:'#historySection'};document.querySelector(targets[t]).scrollIntoView({behavior:'smooth',block:'start'});if(t==='record')setTimeout(()=>$('weightInput').focus(),450)}));
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').classList.remove('hidden')});$('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').classList.add('hidden')}});
-if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+const APP_VERSION='2.0.1';
+let swRegistration=null;
+let updateReloading=false;
+let lastUpdateCheck=0;
+function setUpdateStatus(message){const el=$('updateStatus');if(el)el.textContent=message}
+async function checkForAppUpdate(manual=false){
+  const btn=$('checkUpdateBtn');
+  if(!swRegistration){setUpdateStatus('更新機能を準備中です。');return}
+  try{
+    if(btn){btn.disabled=true;btn.textContent='確認中…'}
+    setUpdateStatus('最新版を確認しています…');
+    lastUpdateCheck=Date.now();
+    await swRegistration.update();
+    setTimeout(()=>{
+      if(!updateReloading){
+        setUpdateStatus(manual?'最新版です。':'最新版を利用中です。');
+        if(btn){btn.disabled=false;btn.textContent='更新を確認'}
+      }
+    },900);
+  }catch(e){
+    setUpdateStatus('更新を確認できませんでした。通信状態を確認してください。');
+    if(btn){btn.disabled=false;btn.textContent='もう一度確認'}
+  }
+}
+function watchServiceWorker(worker){
+  if(!worker)return;
+  worker.addEventListener('statechange',()=>{
+    if(worker.state==='installed'&&navigator.serviceWorker.controller){
+      setUpdateStatus('新しいバージョンを準備しました。自動で更新します…');
+    }
+  });
+}
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(updateReloading)return;
+    updateReloading=true;
+    setUpdateStatus('更新しました。再読み込みします…');
+    window.location.reload();
+  });
+  window.addEventListener('load',async()=>{
+    try{
+      swRegistration=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
+      watchServiceWorker(swRegistration.installing);
+      swRegistration.addEventListener('updatefound',()=>watchServiceWorker(swRegistration.installing));
+      await checkForAppUpdate(false);
+    }catch(e){setUpdateStatus('更新機能を開始できませんでした。')}
+  });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'&&Date.now()-lastUpdateCheck>5*60*1000)checkForAppUpdate(false);
+  });
+}
+$('checkUpdateBtn')?.addEventListener('click',()=>checkForAppUpdate(true));
 setNow();render();

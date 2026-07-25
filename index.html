@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Taka-Life" />
-  <link rel="manifest" href="manifest.webmanifest?v=2.0.0" />
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.0.0" />
-  <link rel="stylesheet" href="styles.css?v=2.0.0" />
+  <link rel="manifest" href="manifest.webmanifest?v=2.0.1" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.0.1" />
+  <link rel="stylesheet" href="styles.css?v=2.0.1" />
   <title>Taka-Life｜Rich Life</title>
 </head>
 <body id="top">
@@ -140,7 +140,15 @@
         <label class="file-button">バックアップを読み込む<input id="importFile" type="file" accept=".json,.csv,text/csv,application/json" /></label>
       </div>
       <p class="muted small">データはこの端末内に保存されます。SafariのWebサイトデータを削除する前には、JSONバックアップがおすすめです。</p>
-      <p class="version">Taka-Life Ver.2.0.0 · Project Rich Life</p>
+      <div class="update-panel" aria-live="polite">
+        <div>
+          <p class="eyebrow">APP UPDATE</p>
+          <strong>アプリの更新</strong>
+          <p id="updateStatus" class="muted small">起動時に最新版を自動確認します。</p>
+        </div>
+        <button id="checkUpdateBtn" class="ghost" type="button">更新を確認</button>
+      </div>
+      <p class="version">Taka-Life Ver.2.0.1 · Project Rich Life</p>
     </section>
   </main>
 
@@ -151,6 +159,6 @@
     <a href="#historySection" data-scroll="history"><span>▤</span><small>履歴</small></a>
   </nav>
 
-  <script src="app.js?v=2.0.0"></script>
+  <script src="app.js?v=2.0.1"></script>
 </body>
 </html>
