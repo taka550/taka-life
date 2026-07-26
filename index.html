@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Taka-Life" />
-  <link rel="manifest" href="manifest.webmanifest?v=2.8.2" />
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.8.2" />
-  <link rel="stylesheet" href="styles.css?v=2.8.2" />
+  <link rel="manifest" href="manifest.webmanifest?v=2.8.3" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.8.3" />
+  <link rel="stylesheet" href="styles.css?v=2.8.3" />
   <title>Taka-Life｜Rich Life with Mio</title>
 </head>
 <body id="top">
@@ -139,34 +139,55 @@
       </section>
     </section>
 
-    <section class="card latest-records-card" aria-labelledby="latestRecordsTitle">
-      <div class="latest-records-heading">
+    <section class="card latest-records-card luxury-records" aria-labelledby="latestRecordsTitle">
+      <div class="latest-records-heading luxury-heading">
         <p class="eyebrow">LATEST RECORDS</p>
         <h2 id="latestRecordsTitle">最新の健康記録</h2>
       </div>
 
-      <div class="latest-weight-block">
-        <p class="latest-label">体重</p>
-        <div class="weight-display"><span id="currentWeight">--</span><small>kg</small></div>
-        <p id="currentMeta" class="latest-meta">まだ記録がありません</p>
+      <div class="luxury-rule" aria-hidden="true"><span>✦</span></div>
+
+      <div class="latest-primary-row">
+        <article class="latest-weight-block luxury-metric weight-metric">
+          <div class="metric-title"><span class="metric-icon" aria-hidden="true">▣</span><span>現在体重</span></div>
+          <div class="weight-display luxury-weight" aria-label="現在体重">
+            <span id="currentWeightInteger">--</span><span id="currentWeightDecimal" class="weight-decimal"></span><small>kg</small>
+          </div>
+          <p id="currentMeta" class="latest-meta">まだ記録がありません</p>
+        </article>
+
+        <article class="bmi-metric luxury-metric">
+          <p class="bmi-label">BMI</p>
+          <div class="bmi-value-line"><strong id="latestBmi">--</strong><span id="latestBmiLabel">記録なし</span></div>
+          <div class="bmi-scale" aria-label="BMIの位置">
+            <div class="bmi-scale-labels"><span>痩せ</span><span>標準</span><span>やや肥満</span><span>肥満</span></div>
+            <div class="bmi-track"><i id="bmiMarker"></i></div>
+          </div>
+        </article>
       </div>
 
-      <div class="latest-records-grid">
-        <article class="latest-record-item">
-          <span>血圧・朝</span>
-          <strong id="latestBpMorning">-- / --</strong>
+      <div class="latest-vitals-row">
+        <article class="latest-record-item luxury-metric bp-metric">
+          <div class="metric-title"><span class="time-icon sun" aria-hidden="true">☀</span><span>血圧・朝</span></div>
+          <strong id="latestBpMorning">-- / --</strong><em>mmHg</em>
+          <p id="latestBpMorningPulse" class="pulse-line">♥ 脈拍 --</p>
           <small id="latestBpMorningMeta">まだ記録がありません</small>
         </article>
-        <article class="latest-record-item">
-          <span>血圧・夜</span>
-          <strong id="latestBpNight">-- / --</strong>
+        <article class="latest-record-item luxury-metric bp-metric">
+          <div class="metric-title"><span class="time-icon moon" aria-hidden="true">◒</span><span>血圧・夜</span></div>
+          <strong id="latestBpNight">-- / --</strong><em>mmHg</em>
+          <p id="latestBpNightPulse" class="pulse-line">♥ 脈拍 --</p>
           <small id="latestBpNightMeta">まだ記録がありません</small>
         </article>
-        <article class="latest-record-item latest-hba1c-item">
-          <span>HbA1c</span>
-          <strong id="latestHba1c">--</strong>
+      </div>
+
+      <div class="latest-hba-row">
+        <article class="latest-record-item latest-hba1c-item luxury-metric">
+          <div class="metric-title"><span class="metric-icon drop" aria-hidden="true">◉</span><span>HbA1c</span></div>
+          <div><strong id="latestHba1c">--</strong><em>%</em></div>
           <small id="latestHba1cMeta">まだ記録がありません</small>
         </article>
+        <button class="latest-history-link" type="button" data-scroll-target="hba1cSection"><span aria-hidden="true">▤</span>記録を見る <b>›</b></button>
       </div>
     </section>
 
@@ -368,6 +389,6 @@
     <a href="#historySection" data-scroll="history"><span>▤</span><small>履歴</small></a>
   </nav>
 
-  <script src="app.js?v=2.8.2"></script>
+  <script src="app.js?v=2.8.3"></script>
 </body>
 </html>

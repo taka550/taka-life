@@ -714,3 +714,78 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
 .hba1c-latest span{color:#776a62;font-size:.78rem}.hba1c-latest strong{font-size:1.35rem}.hba1c-latest strong small{font-size:.68rem;color:#776a62}
 #hba1cSaveMessage[data-type="success"]{color:#30714a}#hba1cSaveMessage[data-type="error"]{color:#a23f42}
 @media(max-width:390px){.latest-records-card{padding:19px 17px}.latest-records-grid{grid-template-columns:1fr}.latest-hba1c-item{grid-column:auto}.latest-record-item{min-height:96px}.latest-record-item strong{font-size:1.28rem}}
+
+/* Ver.2.8.3 — Luxury compact latest records */
+.luxury-records{
+  padding:24px 22px 21px;
+  background:linear-gradient(145deg,rgba(255,253,249,.98),rgba(248,241,231,.98));
+  border:1px solid rgba(183,154,91,.24);
+  box-shadow:0 20px 46px rgba(64,43,27,.08);
+  overflow:hidden;
+}
+.luxury-heading{margin-bottom:0}
+.luxury-heading .eyebrow{letter-spacing:.24em;color:#ad8d4d;font-weight:800}
+.luxury-heading h2{
+  margin-top:6px;
+  font-family:"Yu Mincho","Hiragino Mincho ProN","Hiragino Mincho Pro",Georgia,serif;
+  font-size:clamp(25px,7vw,34px);
+  font-weight:600;
+  letter-spacing:-.035em;
+  line-height:1.18;
+  color:#2b211b;
+}
+.luxury-rule{display:flex;align-items:center;gap:10px;margin:18px 0 16px;color:#bd984a}
+.luxury-rule:before,.luxury-rule:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,transparent,rgba(183,154,91,.55))}
+.luxury-rule:after{background:linear-gradient(90deg,rgba(183,154,91,.55),transparent)}
+.luxury-rule span{font-size:14px}
+.latest-primary-row{display:grid;grid-template-columns:1.08fr .92fr;align-items:center}
+.luxury-metric{min-width:0}
+.weight-metric{padding:4px 16px 13px 2px;border-bottom:0}
+.bmi-metric{padding:3px 0 8px 18px;border-left:1px solid rgba(183,154,91,.35)}
+.metric-title{display:flex;align-items:center;gap:9px;margin-bottom:3px;font-family:"Yu Mincho","Hiragino Mincho ProN",Georgia,serif;font-size:14px;font-weight:650;color:#372a22}
+.metric-icon,.time-icon{display:inline-grid;place-items:center;color:#bd9140;font-family:Georgia,serif;font-size:18px;line-height:1}
+.metric-icon.drop{font-size:17px}
+.luxury-weight{gap:3px;white-space:nowrap}
+.luxury-weight span{font-family:Georgia,"Times New Roman",serif;font-weight:600;color:#241a15;letter-spacing:-.07em;line-height:.83}
+.luxury-weight #currentWeightInteger{font-size:clamp(62px,18vw,91px)}
+.luxury-weight .weight-decimal{font-size:clamp(50px,15vw,76px);transform:translateY(7px);display:inline-block}
+.luxury-weight small{font-family:Georgia,"Times New Roman",serif;font-size:21px;font-weight:600;margin:0 0 7px 4px;color:#372820}
+.latest-meta{margin-top:9px!important;font-family:"Yu Mincho","Hiragino Mincho ProN",Georgia,serif;font-size:12px!important;letter-spacing:.025em;color:#776b62!important;white-space:nowrap}
+.bmi-label{margin:0 0 1px;font-family:Georgia,"Times New Roman",serif;font-size:15px;letter-spacing:.08em;color:#b08a45}
+.bmi-value-line{display:flex;align-items:baseline;gap:9px;white-space:nowrap}
+.bmi-value-line strong{font-family:Georgia,"Times New Roman",serif;font-size:clamp(34px,10vw,48px);font-weight:600;line-height:1;color:#2b2019}
+.bmi-value-line span{font-size:12px;font-weight:800;color:#248246}
+.bmi-scale{margin-top:10px;max-width:210px}
+.bmi-scale-labels{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-bottom:5px;font-size:8px;font-weight:700;color:#5e534c;text-align:center;white-space:nowrap}
+.bmi-scale-labels span:nth-child(3){color:#248246}
+.bmi-track{position:relative;height:10px;border:1px solid rgba(154,125,76,.28);border-radius:999px;background:linear-gradient(90deg,#eee6da 0 25%,#f4eee5 25% 50%,#dcebd9 50% 75%,#eee4d7 75%);overflow:visible}
+.bmi-track:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(25% - 1px),rgba(127,103,70,.18) calc(25% - 1px) 25%)}
+.bmi-track i{position:absolute;left:var(--bmi-position,50%);top:50%;width:13px;height:13px;border-radius:50%;background:#13743d;transform:translate(-50%,-50%);box-shadow:0 1px 4px rgba(19,116,61,.28)}
+.bmi-track i:before{content:"";position:absolute;left:50%;bottom:8px;transform:translateX(-50%);border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:6px solid #13743d}
+.latest-vitals-row{display:grid;grid-template-columns:1fr 1fr;margin-top:7px;border-top:1px solid rgba(183,154,91,.34);border-bottom:1px solid rgba(183,154,91,.34)}
+.latest-record-item{min-height:0!important;padding:15px 12px!important;border:0!important;border-radius:0!important;background:transparent!important;display:block!important}
+.latest-vitals-row .latest-record-item+ .latest-record-item{border-left:1px solid rgba(183,154,91,.28)!important}
+.bp-metric strong{display:inline;font-family:Georgia,"Times New Roman",serif;font-size:clamp(25px,7.6vw,37px)!important;font-weight:500!important;letter-spacing:-.045em!important;color:#281e18!important;line-height:1}
+.bp-metric em,.latest-hba-row em{font-family:Georgia,"Times New Roman",serif;font-style:normal;font-size:10px;color:#483a31;margin-left:3px}
+.pulse-line{margin:8px 0 5px;font-size:11px;color:#695c53}.pulse-line:first-letter{color:#c6973e}
+.latest-record-item small{display:block;margin-top:0!important;font-family:"Yu Mincho","Hiragino Mincho ProN",Georgia,serif;font-size:10px!important;color:#776a62!important;white-space:nowrap}
+.latest-hba-row{display:grid;grid-template-columns:1fr 1fr;align-items:center}
+.latest-hba1c-item strong{font-family:Georgia,"Times New Roman",serif;font-size:clamp(34px,10vw,48px)!important;font-weight:500!important;letter-spacing:-.04em!important;color:#281e18!important}
+.latest-history-link{height:60px;margin:0;padding:0 8px;border:0;border-left:1px solid rgba(183,154,91,.28);background:transparent;color:#3b2c23;display:flex;align-items:center;justify-content:center;gap:9px;font-family:"Yu Mincho","Hiragino Mincho ProN",Georgia,serif;font-size:13px;font-weight:650}
+.latest-history-link span{font-size:22px;color:#bd9140}.latest-history-link b{font-size:22px;color:#a87e32;font-weight:400}
+@media(max-width:390px){
+  .luxury-records{padding:21px 17px 18px}
+  .latest-primary-row{grid-template-columns:1.04fr .96fr}
+  .weight-metric{padding-right:10px}
+  .bmi-metric{padding-left:13px}
+  .luxury-weight #currentWeightInteger{font-size:61px}
+  .luxury-weight .weight-decimal{font-size:51px;transform:translateY(6px)}
+  .luxury-weight small{font-size:17px;margin-left:2px}
+  .bmi-value-line{gap:6px}.bmi-value-line strong{font-size:35px}.bmi-value-line span{font-size:10px}
+  .bmi-scale-labels{font-size:7px}.bmi-scale{margin-top:8px}
+  .latest-record-item{padding:14px 8px!important}
+  .metric-title{font-size:12px;gap:6px}.time-icon{font-size:15px}
+  .bp-metric strong{font-size:25px!important}.bp-metric em{font-size:8px}
+  .pulse-line{font-size:10px}.latest-record-item small{font-size:8.7px!important}
+  .latest-history-link{font-size:11px;gap:6px}.latest-history-link span{font-size:19px}
+}

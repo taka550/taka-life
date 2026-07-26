@@ -18,28 +18,62 @@ function fmt(n,d=1){return Number(n).toFixed(d)}
 function latest(){sortRecords();return state.records.at(-1)}
 function render(){sortRecords();renderGreeting();renderLatestRecords();renderSummary();renderHistory();renderChart();renderBloodPressure();renderBloodGlucose();renderHba1c();renderMio()}
 function renderGreeting(){const h=new Date().getHours();let en='GOOD EVENING',ja='おかえり、タカ。',msg='今日も一日、お疲れさま。';if(h<11){en='GOOD MORNING';ja='おはよう、タカ。';msg='今日を、少し豊かに。'}else if(h<17){en='GOOD AFTERNOON';ja='こんにちは、タカ。';msg='ひと息ついて、午後もゆっくりいこう。'}$('timeGreeting').textContent=en;$('welcomeTitle').textContent=ja;$('welcomeMessage').textContent=msg}
+function formatRecordDate(date,period,time='',includeTime=false){
+  if(!date)return 'まだ記録がありません';
+  const d=new Date(`${date}T12:00:00`);
+  const days=['日','月','火','水','木','金','土'];
+  const base=`${date.replaceAll('-','/')}（${days[d.getDay()]}）`;
+  return `${base} ${period||''}${includeTime&&time?` ${time}`:''}`.trim();
+}
+function bmiStatus(value){
+  if(value<18.5)return '痩せ';
+  if(value<25)return '標準';
+  if(value<30)return 'やや肥満';
+  return '肥満';
+}
+function bmiPosition(value){
+  if(!Number.isFinite(value))return 50;
+  return Math.max(4,Math.min(96,((value-15)/(40-15))*100));
+}
 function renderLatestRecords(){
   const weight=latest();
-  if($('currentWeight'))$('currentWeight').textContent=weight?fmt(weight.weight):'--';
-  if($('currentMeta'))$('currentMeta').textContent=weight?`${weight.date.replaceAll('-','/')} ${weight.period||detectPeriod(weight.time)}`:'まだ記録がありません';
+  if(weight){
+    const parts=Number(weight.weight).toFixed(1).split('.');
+    if($('currentWeightInteger'))$('currentWeightInteger').textContent=parts[0];
+    if($('currentWeightDecimal'))$('currentWeightDecimal').textContent=`.${parts[1]}`;
+    const period=weight.period||detectPeriod(weight.time);
+    if($('currentMeta'))$('currentMeta').textContent=formatRecordDate(weight.date,period,weight.time,true);
+    const heightM=Number(state.settings.heightCm||SETTINGS.heightCm)/100;
+    const bmi=Number(weight.weight)/(heightM*heightM);
+    const status=bmiStatus(bmi);
+    if($('latestBmi'))$('latestBmi').textContent=bmi.toFixed(1);
+    if($('latestBmiLabel'))$('latestBmiLabel').textContent=status;
+    if($('bmiMarker'))$('bmiMarker').style.setProperty('--bmi-position',`${bmiPosition(bmi)}%`);
+  }else{
+    if($('currentWeightInteger'))$('currentWeightInteger').textContent='--';
+    if($('currentWeightDecimal'))$('currentWeightDecimal').textContent='';
+    if($('currentMeta'))$('currentMeta').textContent='まだ記録がありません';
+    if($('latestBmi'))$('latestBmi').textContent='--';
+    if($('latestBmiLabel'))$('latestBmiLabel').textContent='記録なし';
+  }
 
   sortBloodPressureRecords();
   const withPeriod=state.bloodPressureRecords.map(r=>({...r,period:r.period||detectPeriod(r.time)}));
   const morning=[...withPeriod].reverse().find(r=>r.period==='朝');
   const night=[...withPeriod].reverse().find(r=>r.period==='夜');
-  const setBp=(record,valueId,metaId)=>{
+  const setBp=(record,valueId,pulseId,metaId)=>{
     if($(valueId))$(valueId).textContent=record?`${record.systolic} / ${record.diastolic}`:'-- / --';
-    if($(metaId))$(metaId).textContent=record?`${record.date.replaceAll('-','/')}・脈拍 ${record.pulse}`:'まだ記録がありません';
+    if($(pulseId))$(pulseId).textContent=record?`♥ 脈拍 ${record.pulse}`:'♥ 脈拍 --';
+    if($(metaId))$(metaId).textContent=record?formatRecordDate(record.date,record.period):'まだ記録がありません';
   };
-  setBp(morning,'latestBpMorning','latestBpMorningMeta');
-  setBp(night,'latestBpNight','latestBpNightMeta');
+  setBp(morning,'latestBpMorning','latestBpMorningPulse','latestBpMorningMeta');
+  setBp(night,'latestBpNight','latestBpNightPulse','latestBpNightMeta');
 
   sortHba1cRecords();
   const hba=state.hba1cRecords.at(-1);
-  if($('latestHba1c'))$('latestHba1c').textContent=hba?`${Number(hba.value).toFixed(1)}%`:'--';
-  if($('latestHba1cMeta'))$('latestHba1cMeta').textContent=hba?hba.date.replaceAll('-','/'):'まだ記録がありません';
+  if($('latestHba1c'))$('latestHba1c').textContent=hba?Number(hba.value).toFixed(1):'--';
+  if($('latestHba1cMeta'))$('latestHba1cMeta').textContent=hba?formatRecordDate(hba.date,''):'まだ記録がありません';
 }
-
 function renderSummary(){const recs=state.records;if(!recs.length)return;const cur=recs.at(-1);const sevenDaysAgo=new Date(`${cur.date}T12:00:00`);sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);const base=[...recs].reverse().find(r=>new Date(`${r.date}T${r.time||'12:00'}:00`)<=sevenDaysAgo)||recs[0];const change=cur.weight-base.weight;const recent=recs.slice(-7);const avg=recent.reduce((s,r)=>s+r.weight,0)/recent.length;$('weekChange').textContent=`${change>=0?'+':''}${fmt(change)} kg`;$('recentAverage').textContent=`${fmt(avg)} kg`;$('recordCount').textContent=`${recs.length}回`}
 
 function sortBloodPressureRecords(){
@@ -863,7 +897,12 @@ if('serviceWorker' in navigator){
   });
 }
 $('checkUpdateBtn')?.addEventListener('click',()=>checkForAppUpdate(true));
-setNow();setBpNow();setBgNow();setHba1cToday();render();
+setNow();setBpNow();setBgNow();setHba1cToday();
+document.querySelectorAll('[data-scroll-target]').forEach(button=>button.addEventListener('click',()=>{
+  const target=document.getElementById(button.dataset.scrollTarget);
+  if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+}));
+render();
 updateGeminiUsageUi();
 
 
