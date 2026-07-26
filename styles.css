@@ -651,3 +651,24 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
   -webkit-line-clamp:unset;
   -webkit-box-orient:initial;
 }
+
+
+/* Ver.2.8.0 — Blood pressure record */
+.blood-pressure-card{scroll-margin-top:88px}
+.bp-value-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.unit-input{display:flex;align-items:center;gap:8px;margin-top:7px}
+.unit-input input{min-width:0;flex:1;margin-top:0}
+.unit-input small{flex:none;color:#75685f;font-size:.76rem;font-weight:700}
+.bp-latest{display:flex;flex-direction:column;gap:5px;margin:2px 0 18px;padding:16px;border:1px solid rgba(94,74,60,.13);border-radius:18px;background:rgba(255,255,255,.56)}
+.bp-latest span{color:#776a62;font-size:.78rem}
+.bp-latest strong{font-size:1.35rem;letter-spacing:.01em}
+.bp-latest strong small{font-size:.68rem;color:#776a62;font-weight:700}
+.bp-history-wrap{margin-top:24px;padding-top:18px;border-top:1px solid rgba(94,74,60,.12)}
+.compact-heading{margin-bottom:10px}
+.compact-heading h3{margin:0;font-size:1.02rem}
+.bp-table th,.bp-table td{text-align:center}
+.bp-table td:first-child{text-align:left;white-space:nowrap}
+.bp-table td small{color:#83766d}
+#bpSaveMessage[data-type="success"]{color:#30714a}
+#bpSaveMessage[data-type="error"]{color:#a23f42}
+@media(max-width:390px){.bp-value-grid{grid-template-columns:1fr}.bp-latest strong{font-size:1.18rem}}

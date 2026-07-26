@@ -4,21 +4,42 @@ const SETTINGS={heightCm:176,targetWeight:85};
 const SEED=[];
 let state=loadState(); let showAll=false; let deferredPrompt=null;
 const $=id=>document.getElementById(id);
-function loadState(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY));if(v&&Array.isArray(v.records))return v}catch(e){}return {version:1,settings:{...SETTINGS},records:SEED}}
+function loadState(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY));if(v&&Array.isArray(v.records)){return {...v,version:2,settings:{...SETTINGS,...(v.settings||{})},bloodPressureRecords:Array.isArray(v.bloodPressureRecords)?v.bloodPressureRecords:[]}}}catch(e){}return {version:2,settings:{...SETTINGS},records:SEED,bloodPressureRecords:[]}}
 function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
 function sortRecords(){state.records.sort((a,b)=>`${a.date} ${a.time||periodOrder(a.period)}`.localeCompare(`${b.date} ${b.time||periodOrder(b.period)}`))}
 function periodOrder(p){return p==='朝'?'06:00':p==='昼'?'12:00':'20:00'}
 function detectPeriod(time){const h=Number((time||'12:00').split(':')[0]);return h<11?'朝':h<17?'昼':'夜'}
 function nowLocal(){const d=new Date(),pad=n=>String(n).padStart(2,'0');return {date:`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,time:`${pad(d.getHours())}:${pad(d.getMinutes())}`}}
 function setNow(){const n=nowLocal();$('dateInput').value=n.date;$('timeInput').value=n.time;$('periodInput').value='auto'}
+function setBpNow(){const n=nowLocal();$('bpDateInput').value=n.date;$('bpTimeInput').value=n.time}
 function fmt(n,d=1){return Number(n).toFixed(d)}
 function latest(){sortRecords();return state.records.at(-1)}
-function render(){sortRecords();renderGreeting();renderDashboard();renderSummary();renderHistory();renderChart();renderMio()}
+function render(){sortRecords();renderGreeting();renderDashboard();renderSummary();renderHistory();renderChart();renderBloodPressure();renderMio()}
 function renderGreeting(){const h=new Date().getHours();let en='GOOD EVENING',ja='おかえり、タカ。',msg='今日も一日、お疲れさま。';if(h<11){en='GOOD MORNING';ja='おはよう、タカ。';msg='今日を、少し豊かに。'}else if(h<17){en='GOOD AFTERNOON';ja='こんにちは、タカ。';msg='ひと息ついて、午後もゆっくりいこう。'}$('timeGreeting').textContent=en;$('welcomeTitle').textContent=ja;$('welcomeMessage').textContent=msg}
 function renderDashboard(){const recs=state.records,cur=latest();if(!cur)return;const first=recs[0],prev=recs.at(-2)||cur;const bmi=cur.weight/((state.settings.heightCm/100)**2);const remaining=Math.max(0,cur.weight-state.settings.targetWeight);const total=first.weight-state.settings.targetWeight;const rate=total>0?Math.max(0,Math.min(100,(first.weight-cur.weight)/total*100)):100;
 $('currentWeight').textContent=fmt(cur.weight);$('currentMeta').textContent=`${cur.date.replaceAll('-','/')} ${cur.period}${cur.time?' '+cur.time:''}`;$('diffPrev').textContent=`${cur.weight-prev.weight>=0?'+':''}${fmt(cur.weight-prev.weight)} kg`;$('bmi').textContent=fmt(bmi);$('toGoal').textContent=`${fmt(remaining)} kg`;$('diffFirst').textContent=`${cur.weight-first.weight>=0?'+':''}${fmt(cur.weight-first.weight)} kg`;$('goalRate').textContent=`${Math.round(rate)}%`;document.querySelector('.goal-ring').style.setProperty('--rate',`${rate}%`);$('goalMessage').textContent=cur.weight<=state.settings.targetWeight?'🎉 目標体重に到達中！':`目標まであと ${fmt(remaining)}kg。焦らず積み重ねやで。`}
 
 function renderSummary(){const recs=state.records;if(!recs.length)return;const cur=recs.at(-1);const sevenDaysAgo=new Date(`${cur.date}T12:00:00`);sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);const base=[...recs].reverse().find(r=>new Date(`${r.date}T${r.time||'12:00'}:00`)<=sevenDaysAgo)||recs[0];const change=cur.weight-base.weight;const recent=recs.slice(-7);const avg=recent.reduce((s,r)=>s+r.weight,0)/recent.length;$('weekChange').textContent=`${change>=0?'+':''}${fmt(change)} kg`;$('recentAverage').textContent=`${fmt(avg)} kg`;$('recordCount').textContent=`${recs.length}回`}
+
+function sortBloodPressureRecords(){
+  if(!Array.isArray(state.bloodPressureRecords))state.bloodPressureRecords=[];
+  state.bloodPressureRecords.sort((a,b)=>`${a.date} ${a.time||'00:00'}`.localeCompare(`${b.date} ${b.time||'00:00'}`));
+}
+function renderBloodPressure(){
+  const latestEl=$('bpLatest'),body=$('bpHistoryBody');
+  if(!latestEl||!body)return;
+  sortBloodPressureRecords();
+  const records=state.bloodPressureRecords;
+  if(!records.length){
+    latestEl.innerHTML='<span>最新記録</span><strong>まだ記録がありません</strong>';
+    body.innerHTML='<tr><td colspan="3">まだ記録がありません</td></tr>';
+    return;
+  }
+  const cur=records.at(-1);
+  latestEl.innerHTML=`<span>最新記録　${cur.date.replaceAll('-','/')} ${cur.time}</span><strong>${cur.systolic} / ${cur.diastolic} <small>mmHg</small>　${cur.pulse} <small>回/分</small></strong>`;
+  body.innerHTML=[...records].reverse().slice(0,5).map(r=>`<tr><td>${r.date.slice(5).replace('-','/')}<br><small>${r.time}</small></td><td><strong>${r.systolic} / ${r.diastolic}</strong></td><td>${r.pulse}</td></tr>`).join('');
+}
+
 function groupByDate(){const m=new Map();for(const r of state.records){if(!m.has(r.date))m.set(r.date,{date:r.date,朝:null,昼:null,夜:null});m.get(r.date)[r.period]=r.weight}return [...m.values()].sort((a,b)=>b.date.localeCompare(a.date))}
 function renderHistory(){const rows=groupByDate(),visible=showAll?rows:rows.slice(0,5);$('historyBody').innerHTML=visible.map(r=>`<tr><td>${r.date.replaceAll('-','/')}</td><td>${r.朝??'—'}</td><td>${r.昼??'—'}</td><td>${r.夜??'—'}</td></tr>`).join('');$('showAllBtn').textContent=showAll?'5日表示':'すべて表示'}
 function renderChart(){const cvs=$('chart'),ctx=cvs.getContext('2d'),ratio=window.devicePixelRatio||1,w=cvs.clientWidth||320,h=220;cvs.width=w*ratio;cvs.height=h*ratio;ctx.scale(ratio,ratio);ctx.clearRect(0,0,w,h);let days=groupByDate().reverse();const range=$('rangeSelect').value;if(range!=='all')days=days.slice(-Number(range));if(!days.length)return;const vals=days.flatMap(d=>[d.朝,d.夜]).filter(v=>v!=null).concat([state.settings.targetWeight]);let min=Math.floor((Math.min(...vals)-.5)*2)/2,max=Math.ceil((Math.max(...vals)+.5)*2)/2;if(max-min<2)max=min+2;const pad={l:34,r:12,t:14,b:34},pw=w-pad.l-pad.r,ph=h-pad.t-pad.b,x=i=>pad.l+(days.length===1?pw/2:i*pw/(days.length-1)),y=v=>pad.t+(max-v)*ph/(max-min);
@@ -112,89 +133,42 @@ function renderMio(){
 }
 $('replayTheaterBtn')?.addEventListener('click',playTheater);
 $('skipTheaterBtn')?.addEventListener('click',showAllTheater);
-function buildWeightRecordTheaterRequest(record,previousRecord,wasUpdate){
-  const target=Number(state.settings.targetWeight);
-  const differenceToTarget=Number(record.weight)-target;
-  const previousDifference=previousRecord?Number((Number(record.weight)-Number(previousRecord.weight)).toFixed(1)):null;
-  const comparison=previousDifference===null
-    ?'今回が比較できる最初の記録'
-    :previousDifference===0
-      ?'前の記録と同じ体重'
-      :`前の記録より${previousDifference>0?'+':''}${previousDifference.toFixed(1)}kg`;
-  const goal=differenceToTarget<=0
-    ?`目標${target.toFixed(1)}kgに到達中`
-    :`目標${target.toFixed(1)}kgまであと${differenceToTarget.toFixed(1)}kg`;
-  return `体重を${wasUpdate?'更新':'記録'}したで。今回の体重記録を主役にして、いつもの自然なミオ劇場を作って。
-`+
-    `記録：${record.date} ${record.period} ${record.time}、${Number(record.weight).toFixed(1)}kg。
-`+
-    `比較：${comparison}。${goal}。
-`+
-    `今日のひとこと：${record.memo||'なし'}。
-`+
-    `体重の数字を責めたり大げさに評価したりせず、記録できたことも含めて、エンジェルから始まる一つの話題の掛け合いにして。`;
-}
-function findPreviousRecord(recordId){
-  sortRecords();
-  const index=state.records.findIndex(record=>record.id===recordId);
-  return index>0?state.records[index-1]:null;
-}
-$('weightForm').addEventListener('submit',async e=>{
+$('weightForm').addEventListener('submit',e=>{e.preventDefault();const weight=Number($('weightInput').value),date=$('dateInput').value,time=$('timeInput').value,period=$('periodInput').value==='auto'?detectPeriod(time):$('periodInput').value,memo=$('memoInput').value.trim();if(!date||!time||!Number.isFinite(weight)){return}const existing=state.records.find(r=>r.date===date&&r.period===period);if(existing){Object.assign(existing,{time,weight,memo,createdAt:`${date}T${time}:00`})}else{state.records.push({id:Date.now(),date,time,period,weight,memo,createdAt:`${date}T${time}:00`})}saveState();$('weightInput').value='';$('memoInput').value='';$('saveMessage').textContent=existing?`${date} ${period}の記録を上書きしたで。`:`${date} ${period}に記録したで。`;render()});
+
+$('bloodPressureForm')?.addEventListener('submit',e=>{
   e.preventDefault();
-  const form=e.currentTarget;
-  const submitBtn=form.querySelector('button[type="submit"]');
-  const weight=Number($('weightInput').value),date=$('dateInput').value,time=$('timeInput').value;
-  const period=$('periodInput').value==='auto'?detectPeriod(time):$('periodInput').value;
-  const memo=$('memoInput').value.trim();
-  if(!date||!time||!Number.isFinite(weight))return;
-
-  const existing=state.records.find(record=>record.date===date&&record.period===period);
-  const record=existing||{id:Date.now()};
-  Object.assign(record,{date,time,period,weight,memo,createdAt:`${date}T${time}:00`});
-  if(!existing)state.records.push(record);
-
-  saveState();
-  $('weightInput').value='';
-  $('memoInput').value='';
-  const savedMessage=existing?`${date} ${period}の記録を上書きしたで。`:`${date} ${period}に記録したで。`;
-  $('saveMessage').textContent=`${savedMessage} ミオ劇場を準備中…`;
-  render();
-
-  try{
-    if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='ミオ劇場を準備中…'}
-    if(!getGeminiKey()){
-      $('saveMessage').textContent=`${savedMessage} APIキーが未設定なので、今回は情報更新だけしました。`;
-      return;
-    }
-    const usage=loadGeminiUsage();
-    if(usage.count>=GEMINI_DAILY_LIMIT_ESTIMATE){
-      $('saveMessage').textContent=`${savedMessage} Geminiの利用目安上限のため、今回は情報更新だけしました。`;
-      return;
-    }
-
-    const previousRecord=findPreviousRecord(record.id);
-    const request=buildWeightRecordTheaterRequest(record,previousRecord,Boolean(existing));
-    const result=await callGeminiForMio(request);
-    saveMioMemory(request,result);
-    applyAiMioTheater(result);
-    $('saveMessage').textContent=`${savedMessage} ミオ劇場も更新したで。`;
-    updateMioApiUi();
-  }catch(err){
-    const quota=err?.status===429||loadGeminiUsage().count>=GEMINI_DAILY_LIMIT_ESTIMATE;
-    $('saveMessage').textContent=quota
-      ?`${savedMessage} Geminiの利用上限にかかったため、今回は情報更新だけしました。`
-      :`${savedMessage} ミオ劇場は作れなかったため、今回は情報更新だけしました。`;
-  }finally{
-    if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='記録して、ミオ劇場へ'}
+  const systolic=Number($('systolicInput').value);
+  const diastolic=Number($('diastolicInput').value);
+  const pulse=Number($('pulseInput').value);
+  const date=$('bpDateInput').value;
+  const time=$('bpTimeInput').value;
+  const memo=$('bpMemoInput').value.trim();
+  const message=$('bpSaveMessage');
+  if(!date||!time||![systolic,diastolic,pulse].every(Number.isFinite))return;
+  if(systolic<=diastolic){
+    message.textContent='最高血圧は最低血圧より大きい値を入力してな。';
+    message.dataset.type='error';
+    return;
   }
+  if(!Array.isArray(state.bloodPressureRecords))state.bloodPressureRecords=[];
+  const existing=state.bloodPressureRecords.find(r=>r.date===date&&r.time===time);
+  const record={id:existing?.id||Date.now(),date,time,systolic,diastolic,pulse,memo,createdAt:`${date}T${time}:00`};
+  if(existing)Object.assign(existing,record);else state.bloodPressureRecords.push(record);
+  saveState();
+  $('systolicInput').value='';$('diastolicInput').value='';$('pulseInput').value='';$('bpMemoInput').value='';
+  message.dataset.type='success';
+  message.textContent=existing?`${date} ${time}の血圧を上書きしたで。`:`${date} ${time}に血圧を記録したで。`;
+  renderBloodPressure();
 });
+$('bpNowBtn')?.addEventListener('click',setBpNow);
+
 $('nowBtn').addEventListener('click',setNow);$('showAllBtn').addEventListener('click',()=>{showAll=!showAll;renderHistory()});$('rangeSelect').addEventListener('change',renderChart);window.addEventListener('resize',renderChart);
 function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),500)}
-$('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${nowLocal().date}.json`,JSON.stringify(state,null,2),'application/json'));
+$('exportJsonBtn').addEventListener('click',()=>download(`taka-life-backup-${nowLocal().date}.json`,JSON.stringify(state,null,2),'application/json'));
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
-$('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
+$('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:2,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records,bloodPressureRecords:Array.isArray(imported.bloodPressureRecords)?imported.bloodPressureRecords:[]};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state={...state,version:2,bloodPressureRecords:Array.isArray(state.bloodPressureRecords)?state.bloodPressureRecords:[]};state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.2.7.2 AI Mio Service =====
+// ===== Ver.2.8.0 AI Mio Service =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v4';
 const MIO_MEMORY_STORAGE='takaLife.mioMemory.v2';
@@ -748,7 +722,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.7.2';
+const APP_VERSION='2.8.0';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
@@ -800,7 +774,7 @@ if('serviceWorker' in navigator){
   });
 }
 $('checkUpdateBtn')?.addEventListener('click',()=>checkForAppUpdate(true));
-setNow();render();
+setNow();setBpNow();render();
 updateGeminiUsageUi();
 
 
