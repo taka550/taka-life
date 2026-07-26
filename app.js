@@ -47,13 +47,26 @@ function playTheater(){
   [angel,devil].forEach(el=>el?.classList.remove('is-visible','is-talking','is-listening'));
   scenes.forEach(el=>el.classList.remove('is-visible'));
   finale?.classList.remove('is-visible');
+
   theaterTimers.push(setTimeout(()=>devil?.classList.add('is-visible'),220));
-  theaterTimers.push(setTimeout(()=>{scenes[0]?.classList.add('is-visible');devil?.classList.add('is-talking');angel?.classList.add('is-listening')},720));
-  theaterTimers.push(setTimeout(()=>{devil?.classList.remove('is-talking');devil?.classList.add('is-listening');angel?.classList.remove('is-listening');angel?.classList.add('is-visible')},1900));
-  theaterTimers.push(setTimeout(()=>{scenes[1]?.classList.add('is-visible');angel?.classList.add('is-talking')},2400));
-  theaterTimers.push(setTimeout(()=>{angel?.classList.remove('is-talking');angel?.classList.add('is-listening');devil?.classList.remove('is-listening');scenes[2]?.classList.add('is-visible');devil?.classList.add('is-talking')},3900));
-  theaterTimers.push(setTimeout(()=>{devil?.classList.remove('is-talking');devil?.classList.add('is-listening');angel?.classList.remove('is-listening');scenes[3]?.classList.add('is-visible');angel?.classList.add('is-talking')},5400));
-  theaterTimers.push(setTimeout(()=>{angel?.classList.remove('is-talking');angel?.classList.remove('is-listening');devil?.classList.remove('is-listening');finale?.classList.add('is-visible')},7000));
+  scenes.forEach((scene,index)=>{
+    const isDevil=index%2===0;
+    const speaker=isDevil?devil:angel;
+    const listener=isDevil?angel:devil;
+    const at=720+(index*1250);
+    theaterTimers.push(setTimeout(()=>{
+      if(!isDevil)angel?.classList.add('is-visible');
+      speaker?.classList.remove('is-listening');
+      speaker?.classList.add('is-talking');
+      listener?.classList.remove('is-talking');
+      listener?.classList.add('is-listening');
+      scene?.classList.add('is-visible');
+    },at));
+  });
+  theaterTimers.push(setTimeout(()=>{
+    [angel,devil].forEach(el=>el?.classList.remove('is-talking','is-listening'));
+    finale?.classList.add('is-visible');
+  },720+(scenes.length*1250)));
 }
 
 function applyTheaterTimeTheme(){
@@ -75,7 +88,9 @@ function renderMio(){
     $('devilText1').textContent='まだ記録がないみたい。最初の一歩、待ってるで。';
     $('angelText1').textContent='数字より、まず記録を始めることが大切です。';
     $('devilText2').textContent='一回入れたら、うちらの出番やな。';
-    $('angelText2').textContent='今日も健康第一で、無理なく始めましょう。';
+    $('angelText2').textContent='そうですね。まず一回だけ、今の数字をそのまま入れてみましょう。';
+    $('devilText3').textContent='一回入れたら、うちらが勝手に劇場を始めるで。入場料はゼロや。';
+    $('angelText3').textContent='勝手には始めません（笑）。タカが記録したら、二人でちゃんと応援します。';
     $('finaleText').textContent='記録した日から、物語が始まる。';
     playTheater();
     return;
@@ -83,15 +98,15 @@ function renderMio(){
   const diff=prev?cur.weight-prev.weight:0;
   let lines;
   if(cur.weight<=state.settings.targetWeight){
-    lines=['おっ、目標ラインに到達してるやん。祝勝会の準備する？','ここまでの積み重ねが数字に表れましたね。まずは本当にお疲れさま。','三日連続の宴会は却下されそうやな。でも今日は少しくらい喜ぼう。','達成後は無理に減らさず、心地よく続けられる形で定着させましょう。'];
+    lines=['おっ、目標ライン到達や。祝勝会は焼肉、ケーキ、締めのラーメンで三部作にする？','三部作は長すぎます（笑）。でも、ここまで積み重ねたタカはちゃんと祝っていいですよ。','ほな焼肉だけ残して、ケーキとラーメンは友情出演にしとこか。','友情出演でも食べる気ですね。今日は好きなものを一つ、ゆっくり楽しむくらいにしましょう。','一つだけかいな。ほな、その一つを主役級の扱いで迎えたるわ。','主役級でも量は普通です（笑）。達成を喜んで、明日からまた心地よく続けましょう。'];
   }else if(diff<=-.5){
-    lines=[`前回から${Math.abs(diff).toFixed(1)}kgダウン。これはニヤけてもええ数字やな。`,'しっかり下がりましたね。ただ、一日の数字だけでなく記録を続けていることが一番の成果です。','ほなチョコパン二個でお祝い……は、計算が合わんか。','焦らず、水分と食事を整えて。今日も健康第一でいきましょう。'];
+    lines=[`前回から${Math.abs(diff).toFixed(1)}kgダウン。これはチョコパンが拍手してる数字やな。`,'チョコパンは拍手しません（笑）。でも、タカが記録を続けている成果はちゃんと出ています。','ほな拍手してる体で、一個だけ祝賀会に呼んでもええやろ。','すぐ招待しますね。今日は食べるなら一つをゆっくり味わって、数字だけで追加しない作戦です。','了解や。チョコパンには「本日は単独公演です」って伝えとくわ。','それなら平和です（笑）。下がったことを喜びつつ、今日も普段どおりでいきましょう。'];
   }else if(diff>=.5){
-    lines=[`前回から${diff.toFixed(1)}kgアップ。体重計を見なかったことにする？`,'水分や食事のタイミングでも動く範囲です。今日だけで判断しなくて大丈夫。','ちゃんと記録した時点で、逃げてへん。そこは合格や。','次の記録まで淡々と。無理な調整はせず、いつもの生活へ戻しましょう。'];
+    lines=[`前回から${diff.toFixed(1)}kgアップ。体重計に今日は有休を出してもらう？`,'体重計は働いています（笑）。水分や食事のタイミングでも動くので、今日だけで決めつけなくて大丈夫です。','ほな数字は見た。でも記憶からは一旦ログアウト、これでどうや。','ログアウトはしません（笑）。記録できたことを合格にして、次の食事を普段どおりに戻しましょう。','了解。反省会の代わりに、体重計へ「また次回」とだけ言うとくわ。','それで十分です。タカ、無理な帳尻合わせはせず、次の記録まで普通に過ごしましょう。'];
   }else{
-    lines=['今日は大きな変化なし。派手さはないけど、こういう日が強いねん。','安定している日も立派な前進です。続けられていることを大切にしましょう。','珍しく真面目なこと言うけど、地味に続ける人が最後に勝つで。','今日も無理せず、一歩ずつ。二人でタカを応援しています。'];
+    lines=['今日は大きな変化なし。体重計も「本日は平常運転です」やな。','体重計はアナウンスしません（笑）。でも、安定して記録を続けられているのは立派です。','ほな派手なご褒美はなしで、地味にスコーン一個だけ出演させる？','結局出演させるんですね（笑）。食べたい日なら一つを楽しむ、そうでなければ普段どおりで十分です。','了解。今日はスコーンのオーディションだけして、採用はタカに任せるわ。','採用権はタカです（笑）。変化が少ない日も、そのまま記録して終わりにしましょう。'];
   }
-  $('devilText1').textContent=lines[0];$('angelText1').textContent=lines[1];$('devilText2').textContent=lines[2];$('angelText2').textContent=lines[3];
+  $('devilText1').textContent=lines[0];$('angelText1').textContent=lines[1];$('devilText2').textContent=lines[2];$('angelText2').textContent=lines[3];$('devilText3').textContent=lines[4];$('angelText3').textContent=lines[5];
   $('finaleText').textContent=`最新 ${cur.weight.toFixed(1)}kg。二人とも、タカの味方。`;
   playTheater();
 }
@@ -104,7 +119,7 @@ $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${n
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.2.6.5 AI Mio Service =====
+// ===== Ver.2.6.6 AI Mio Service =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v4';
 const MIO_MEMORY_STORAGE='takaLife.mioMemory.v2';
@@ -246,7 +261,7 @@ function loadMioMemory(){
 }
 function saveMioMemory(userMessage,result){
   const memory=loadMioMemory();
-  const summary=[result?.devil1,result?.angel1,result?.finale].filter(Boolean).join(' ').slice(0,300);
+  const summary=[result?.devil1,result?.angel1,result?.devil2,result?.angel2,result?.devil3,result?.angel3,result?.finale].filter(Boolean).join(' ').slice(0,420);
   const text=`${userMessage||''} ${summary}`;
   memory.push({
     id:`mio-${Date.now()}`,
@@ -342,26 +357,57 @@ function buildMioContext(userText){
   };
 }
 function mioTheaterPrompt(context){
-  return `あなたはTaka-Lifeの専属脚本家。タカを以前から知る二人のAI「デビルミオ」と「エンジェルミオ」の会話を作る。
+  return `あなたはTaka-Lifeの専属コメディ脚本家です。回答ではなく、タカ専用の短い即興コント「ミオ劇場」を1本だけ書いてください。
 
-最重要：無難な一般論や保健室の先生のような返答は禁止。今回の相談にある具体的な言葉を拾い、プロフィールや関連メモは自然に使える時だけ使う。関連メモを全部詰め込まず、今回に効く1〜2点だけ使う。記憶を使う場合も「記録によると」など機械的な言い方はしない。事実を捏造しない。
+【ミオ劇場の最上位目的】
+タカが読んでクスッと笑い、少し気分がよくなり、次も読みたくなること。二人ともタカの味方で、健康第一。ただし説教や保健室の先生のような返答は禁止。
 
-【人物】
-デビルミオ：タカの味方。軽い関西弁で、愛のあるツッコミ、茶目っ気、具体的な一言を入れる。説教・意地悪・危険な誘惑は禁止。
-エンジェルミオ：優しい標準語。共感だけで終わらず、タカの性格や状況に合う現実的な提案を一つ入れる。デビルの発言にも自然に返す。
+【世界観】
+デビルミオとエンジェルミオは敵ではなく仲良し。タカの頭の中で漫才のように掛け合う。方法は違っても、二人ともタカを大切にしている。
 
-【会話品質】
-- 4つのセリフが一続きの会話になること。各自が直前の発言を受ける。
-- 二人ともタカを『タカ』と呼ぶ。
-- デビル1は相談の具体点に触れ、最低1回はクスッとする表現を入れる。
-- エンジェル1は気持ちを言い換えて理解を示す。
-- デビル2はエンジェル1への反応＋別角度の本音を出す。
-- エンジェル2はデビル2を受け、今日できる小さな行動を一つだけ提案する。
-- フィナーレは二人らしい共同コメント。抽象的な美辞麗句だけにしない。
-- 各セリフ45〜100文字、1〜3文。同じ内容・語尾を繰り返さない。
-- 『焦らず』『無理せず』『水分を』『少し体を動かす』を定型句のように並べない。必要なら『今日は昼にスープを少し』『仕事を一つ終えたら5分休憩』のように相談に合わせて具体化する。
-- 相談と無関係なら、体重・健康・スタバ・読書を無理に持ち出さない。
-- 体重の単発変動を評価しすぎない。医療診断、薬の変更、絶食、急減量、過度な運動は勧めない。
+【デビルミオの正式役割】
+- タカを誘惑するボケ担当。タカの欲望と言い訳を、軽い関西弁で楽しく代弁する。
+- 必ず一度は具体的に誘惑し、必ず一度は笑えるボケを入れる。
+- 「今日だけ」「ご褒美」「ゼロカロリー理論」などは使ってよいが、毎回同じネタにしない。
+- 悪役ではない。本当に危険な行動、薬の変更、絶食、暴飲暴食、過度な運動は勧めない。最後は素直に引く。
+
+【エンジェルミオの正式役割】
+- デビルへのツッコミ、現実確認、タカの応援担当。優しい標準語。
+- デビルの直前の発言に必ず具体的にツッコむ。
+- 完全否定や説教はせず、タカが今日できる小さく具体的な提案を一つだけ出す。
+- 共感だけ、一般論だけ、「無理せず」「焦らず」の連発は禁止。
+
+【脚本構造：必ず一続きの6ターン】
+1. デビル1：相談の具体語を拾い、誘惑またはボケで開幕。
+2. エンジェル1：デビル1の言葉を引用・言い換えして即ツッコミ。タカの気持ちも受け止める。
+3. デビル2：エンジェル1への返答として、言い訳を重ねる。話題を変えない。
+4. エンジェル2：デビル2へさらにツッコミ。現実的な落としどころを示す。
+5. デビル3：エンジェル2を受けて、最後のボケまたはオチ。少しだけ譲る。
+6. エンジェル3：デビル3を受け、今日の具体的な一歩で優しく締める。
+フィナーレ：二人の共同コメント。今回の結論を短く言い、抽象的な美辞麗句で終わらせない。
+
+【絶対ルール】
+- これは6個の独立回答ではなく、最初から最後まで一つの短い会話劇。
+- 各ターンは直前のセリフへの返答。突然別の話題へ移らない。
+- 今回の相談にある具体的な言葉を使う。プロフィールや関連メモは自然に効く1〜2点だけ使う。
+- 記憶を使う時も「記録によると」など機械的に言わない。事実を捏造しない。
+- 二人ともタカを「タカ」と呼ぶ。
+- 各セリフ35〜85文字、1〜2文。途中で切れた文、箇条書き、説明文は禁止。
+- 同じ内容、同じ語尾、同じボケを繰り返さない。
+- 相談と無関係なら体重・健康・スタバ・読書を持ち出さない。
+- 医療診断や薬の調整はしない。体調に危険な兆候がある場合だけ、笑いを抑えて安全を優先する。
+
+【話題別の反応ヒント：該当するものだけ使う】
+- 食べ物：デビルは「今日だけ」「一口だけ」などで誘惑。エンジェルは楽しみを全否定せず量やタイミングで着地。
+- スタバ：デビルはフード追加・サイズアップ・甘いカスタムなどを毎回変えて誘惑。エンジェルは今の気分に合う一つへ絞る。
+- 体重：デビルはご褒美や都合のいい理屈でボケる。エンジェルは単発値を責めず、継続を認める。
+- マンジャロ・体調：デビルも危険な誘惑はせず、食べやすさや休憩で軽くボケる。エンジェルは体調第一で具体化。
+- 仕事：デビルはサボりやスタバ出勤を冗談で誘惑。エンジェルは頑張りを認め、区切りの休憩を提案。
+- 読書：デビルは「もう一章」「もう一冊」。エンジェルは疲れ具合に合わせて区切る。
+- 疲れ・眠気：デビルは堂々と休む言い訳を作る。エンジェルは休むことを現実的に整える。
+
+【出力前の自己確認】
+会話がつながっている／デビルが誘惑してボケた／エンジェルが具体的にツッコんだ／タカ専用の内容／最後が前向き。この5点を満たしてから出力する。
 
 【出力形式】前置き・Markdown・説明は禁止。必ず次の順番。
 【デビル1】
@@ -371,6 +417,10 @@ function mioTheaterPrompt(context){
 【デビル2】
 セリフ
 【エンジェル2】
+セリフ
+【デビル3】
+セリフ
+【エンジェル3】
 セリフ
 【フィナーレ】
 セリフ
@@ -460,33 +510,35 @@ function parseMioTheater(text){
   }
 
   // Fallback 1: one non-heading paragraph per line
-  if(Object.keys(result).length<5){
+  if(Object.keys(result).length<7){
     const chunks=normalized
       .split(/\n+/)
       .map(line=>line
-        .replace(/^\s*[【\[]?(?:デビル\s*[12①②]?|エンジェル\s*[12①②]?|フィナーレ|まとめ|DEVIL\s*[12]?|ANGEL\s*[12]?|FINALE)[】\]]?\s*[:：-]?\s*/i,'')
+        .replace(/^\s*[【\[]?(?:デビル\s*[123①②③]?|エンジェル\s*[123①②③]?|フィナーレ|まとめ|DEVIL\s*[123]?|ANGEL\s*[123]?|FINALE)[】\]]?\s*[:：-]?\s*/i,'')
         .trim())
       .filter(line=>line.length>=16);
 
-    const slots=['devil1','angel1','devil2','angel2','finale'];
+    const slots=['devil1','angel1','devil2','angel2','devil3','angel3','finale'];
     for(let i=0;i<slots.length;i++){
       if(!result[slots[i]]&&chunks[i])result[slots[i]]=cleanMioText(chunks[i]);
     }
   }
 
   // Fallback 2: split a prose answer by sentence groups.
-  if(Object.keys(result).length<5){
+  if(Object.keys(result).length<7){
     const sentences=(normalized.match(/[^。！？!?]+[。！？!?]/g)||[])
       .map(value=>cleanMioText(value))
       .filter(value=>value.length>=12);
-    if(sentences.length>=5){
-      const slots=['devil1','angel1','devil2','angel2','finale'];
+    if(sentences.length>=7){
+      const slots=['devil1','angel1','devil2','angel2','devil3','angel3','finale'];
       const groups=[
         sentences.slice(0,1),
         sentences.slice(1,2),
         sentences.slice(2,3),
         sentences.slice(3,4),
-        sentences.slice(4)
+        sentences.slice(4,5),
+        sentences.slice(5,6),
+        sentences.slice(6)
       ];
       slots.forEach((slot,index)=>{
         if(!result[slot]&&groups[index].length)result[slot]=cleanMioText(groups[index].join(''));
@@ -498,11 +550,13 @@ function parseMioTheater(text){
     devil1:'タカ、今日は肩の力を抜きつつ、今の気分をちゃんと拾っていこか。休む日も前に進む日の一つやで。',
     angel1:'今の気持ちをそのまま言葉にできたことが大切です。焦らず、今日の自分に合うペースを選びましょう。',
     devil2:'せやけど、ごほうびを盛りすぎて本日の主役が食べ物だけになるんはナシやで。楽しみはほどよくや。',
-    angel2:'水分や食事を整えながら、できそうなら少し体を動かすくらいで十分です。無理のない一歩にしましょう。',
+    angel2:'その理屈は便利すぎます（笑）。今日は楽しみを一つに絞って、ちゃんと味わう作戦にしましょう。',
+    devil3:'一つだけかいな。ほな、その一つを国宝級のご褒美として丁重にいただこか。',
+    angel3:'国宝にはしません（笑）。タカ、今日は決めた一つを楽しんだら、そこで気持ちよく終了です。',
     finale:'今日も完璧を目指さなくて大丈夫です。気持ちよく続けられる一日を、二人で応援しています。'
   };
 
-  const slots=['devil1','angel1','devil2','angel2','finale'];
+  const slots=['devil1','angel1','devil2','angel2','devil3','angel3','finale'];
   const foundCount=slots.filter(slot=>result[slot]).length;
   if(foundCount===0)throw new Error('ミオ劇場の文章を読み取れませんでした。');
 
@@ -514,7 +568,7 @@ function parseMioTheater(text){
 function buildGenerateBody(context){
   return {
     contents:[{role:'user',parts:[{text:mioTheaterPrompt(context)}]}],
-    generationConfig:{maxOutputTokens:900,temperature:0.88}
+    generationConfig:{maxOutputTokens:1200,temperature:0.92}
   };
 }
 function isModelUnavailable(err){return err?.status===404||/no longer available|not found|not supported for generatecontent/i.test(err?.message||'')}
@@ -569,6 +623,8 @@ function applyAiMioTheater(result){
   $('angelText1').textContent=result.angel1;
   $('devilText2').textContent=result.devil2;
   $('angelText2').textContent=result.angel2;
+  $('devilText3').textContent=result.devil3;
+  $('angelText3').textContent=result.angel3;
   $('finaleText').textContent=result.finale;
   closeMioChat();
   $('mioTheater')?.scrollIntoView({behavior:'smooth',block:'start'});
@@ -651,7 +707,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.6.5';
+const APP_VERSION='2.6.6';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
