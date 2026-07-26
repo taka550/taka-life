@@ -119,7 +119,7 @@ $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${n
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.2.6.8 AI Mio Service =====
+// ===== Ver.2.6.9 AI Mio Service =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v4';
 const MIO_MEMORY_STORAGE='takaLife.mioMemory.v2';
@@ -437,8 +437,8 @@ function mioTheaterPrompt(context){
 - 事実の捏造、箇条書き、説明文、途中で切れた文。
 
 【長さ】
-- 各セリフはおおむね35〜90文字、1〜2文。
-- finaleは20〜55文字。
+- 各セリフはおおむね30〜75文字、1〜2文。
+- finaleは20〜45文字。
 - 文字数を守るために文を途中で切らず、必ず文末まで完成させる。
 - 全体を簡潔にし、長くなりそうなら内容を削って文を完結させる。
 
@@ -450,17 +450,26 @@ function mioTheaterPrompt(context){
 - 文が最後まで完結しているか
 
 【出力形式】
-前置き、Markdown、コードフェンス、説明は禁止です。次のキーを持つJSONオブジェクトだけを返してください。
-{
-  "theme": "固定テーマを短く",
-  "angel1": "セリフ",
-  "devil1": "セリフ",
-  "angel2": "セリフ",
-  "devil2": "セリフ",
-  "angel3": "セリフ",
-  "devil3": "セリフ",
-  "finale": "共同コメント"
-}
+JSON、Markdown、コードフェンス、前置き、説明は禁止です。
+必ず次の見出しを、この順番・この表記のまま1回ずつ使ってください。各見出しの次の行に本文を書きます。最後は必ず ===END=== で閉じてください。
+
+===THEME===
+固定テーマを短く
+===ANGEL1===
+セリフ
+===DEVIL1===
+セリフ
+===ANGEL2===
+セリフ
+===DEVIL2===
+セリフ
+===ANGEL3===
+セリフ
+===DEVIL3===
+セリフ
+===FINALE===
+共同コメント
+===END===
 
 【今回使える情報】
 ${JSON.stringify(context,null,2)}`;
@@ -531,8 +540,40 @@ function extractJsonObject(text){
   if(first<0||last<=first)return null;
   try{return JSON.parse(normalized.slice(first,last+1))}catch{return null}
 }
+function parseDelimitedMioTheater(text){
+  const normalized=String(text||'')
+    .replace(/```(?:text|json|markdown)?/gi,'')
+    .replace(/```/g,'')
+    .replace(/\r/g,'')
+    .trim();
+  const markers=['THEME','ANGEL1','DEVIL1','ANGEL2','DEVIL2','ANGEL3','DEVIL3','FINALE','END'];
+  const positions=[];
+  for(const marker of markers){
+    const token=`===${marker}===`;
+    const index=normalized.indexOf(token);
+    if(index<0)return null;
+    positions.push({marker,index,token});
+  }
+  for(let i=1;i<positions.length;i++)if(positions[i].index<=positions[i-1].index)return null;
+  const result={};
+  for(let i=0;i<positions.length-1;i++){
+    const current=positions[i];
+    const next=positions[i+1];
+    const raw=normalized.slice(current.index+current.token.length,next.index).trim();
+    if(!raw)return null;
+    const key=current.marker.toLowerCase();
+    result[key]=current.marker==='THEME'
+      ?cleanMioText(raw).replace(/[。！？!?]$/,'')
+      :cleanMioText(raw);
+  }
+  return result;
+}
 function parseMioTheater(text){
   const slots=['angel1','devil1','angel2','devil2','angel3','devil3','finale'];
+  const delimited=parseDelimitedMioTheater(text);
+  if(delimited&&slots.every(slot=>typeof delimited[slot]==='string'&&delimited[slot].trim()))return delimited;
+
+  // Ver.2.6.8以前のJSON形式も、保存済み応答やモデル差異への保険として読み取る。
   const json=extractJsonObject(text);
   if(json&&slots.every(slot=>typeof json[slot]==='string'&&json[slot].trim())){
     const result={theme:cleanMioText(json.theme||'').replace(/[。！？!?]$/,'')};
@@ -540,7 +581,7 @@ function parseMioTheater(text){
     return result;
   }
 
-  // 旧形式も読み取れるように残す。GeminiがJSONを外した場合の保険。
+  // 見出し表記が少し崩れた場合の最終保険。
   const normalized=String(text||'')
     .replace(/```(?:text|json|markdown)?/gi,'')
     .replace(/```/g,'')
@@ -564,15 +605,14 @@ function parseMioTheater(text){
     if(match?.[1])result[current.slot]=cleanMioText(match[1]);
   }
   if(slots.every(slot=>result[slot]))return result;
-  throw new Error('ミオ劇場のJSONを最後まで読み取れませんでした。もう一度作成してください。');
+  throw new Error('ミオ劇場のセリフを最後まで読み取れませんでした。もう一度作成してください。');
 }
 function buildGenerateBody(context){
   return {
     contents:[{role:'user',parts:[{text:mioTheaterPrompt(context)}]}],
     generationConfig:{
-      maxOutputTokens:1000,
-      temperature:0.86,
-      responseMimeType:'application/json'
+      maxOutputTokens:1800,
+      temperature:0.82
     }
   };
 }
@@ -686,8 +726,8 @@ async function askMio(){
   let seconds=0,timer=null;
   try{
     if(btn){btn.disabled=true;btn.textContent='ミオたちが考え中…'}
-    setMioAiStatus('デビルミオとエンジェルミオが脚本を相談中… 0秒');
-    timer=setInterval(()=>{seconds++;setMioAiStatus(`デビルミオとエンジェルミオが脚本を相談中… ${seconds}秒`)},1000);
+    setMioAiStatus('エンジェルミオとデビルミオが脚本を相談中… 0秒');
+    timer=setInterval(()=>{seconds++;setMioAiStatus(`エンジェルミオとデビルミオが脚本を相談中… ${seconds}秒`)},1000);
     const result=await callGeminiForMio(question);
     saveMioMemory(question,result);
     applyAiMioTheater(result);
@@ -712,7 +752,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.6.8';
+const APP_VERSION='2.6.9';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
