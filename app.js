@@ -104,11 +104,13 @@ $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${n
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.2.6.1 AI Mio Service =====
+// ===== Ver.2.6.5 AI Mio Service =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v4';
-const MIO_MEMORY_STORAGE='takaLife.mioMemory.v1';
-const MAX_MIO_MEMORY=5;
+const MIO_MEMORY_STORAGE='takaLife.mioMemory.v2';
+const LEGACY_MIO_MEMORY_STORAGE='takaLife.mioMemory.v1';
+const MAX_MIO_MEMORY=30;
+const MAX_RELEVANT_MIO_MEMORY=5;
 const GEMINI_API_BASE='https://generativelanguage.googleapis.com/v1beta';
 const GEMINI_MODEL_PREFERENCES=[
   'gemini-3.5-flash',
@@ -122,15 +124,13 @@ const GEMINI_USAGE_STORAGE='takaLife.geminiUsage.v1';
 const GEMINI_DAILY_LIMIT_ESTIMATE=20;
 
 
-function todayLocalKey(){
-  const now=new Date();
-  const year=now.getFullYear();
-  const month=String(now.getMonth()+1).padStart(2,'0');
-  const day=String(now.getDate()).padStart(2,'0');
-  return `${year}-${month}-${day}`;
+function geminiQuotaDayKey(){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const values=Object.fromEntries(parts.map(part=>[part.type,part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 function loadGeminiUsage(){
-  const today=todayLocalKey();
+  const today=geminiQuotaDayKey();
   try{
     const saved=JSON.parse(localStorage.getItem(GEMINI_USAGE_STORAGE)||'{}');
     if(saved?.date===today&&Number.isFinite(Number(saved.count))){
@@ -187,7 +187,58 @@ function saveGeminiKey(){
   updateMioApiUi();
   return true;
 }
+const MIO_PROFILE={
+  name:'タカ',
+  age:51,
+  home:'家族は大阪、本人は千葉・幕張で単身赴任',
+  work:'管理職。企画・経理・法務を横断する仕事や、品質トラブル対応を担う',
+  personality:'責任感が強く、納得できる根拠を大切にする。ユーモアと関西らしいツッコミが好き',
+  family:'妻と息子2人を大切にしている',
+  health:'2型糖尿病。マンジャロを土曜夜に使用し、翌日は食欲が落ちやすい。健康第一',
+  lifestyle:'自転車通勤。朝食は基本軽めまたは食べない。夜は米を控えめにする',
+  interests:'スタバでの読書、ほっこり系小説、料理、キングダムが好き',
+  conversation:'説教や一般論より、具体的で自然な会話を好む。デビルミオの軽い関西弁と笑えるツッコミが好き'
+};
+const MIO_TAG_RULES={
+  health:['マンジャロ','食欲','糖尿病','血糖','薬','体調','頭痛','ふらつ','吐き気','下痢','水分','体重','kg','減量','ダイエット','睡眠','疲れ','休む','休憩'],
+  work:['仕事','会社','出勤','会議','出張','部下','上司','残業','休日出勤','議事録','案件','職場'],
+  family:['家族','奥さん','妻','息子','長男','次男','大阪','奈良','サメしゃん','クマしゃん'],
+  starbucks:['スタバ','コーヒー','ティー','フラペチーノ','リフレッシャーズ','カフェ','モバイルオーダー'],
+  reading:['本','読書','小説','森崎','書店','パン屋','成瀬','メガチャーチ'],
+  food:['食べ','ごはん','料理','昼食','夕食','朝食','寿司','アジフライ','パン','ケーキ','お酒','ハイボール'],
+  exercise:['自転車','散歩','運動','歩く','通勤'],
+  mood:['気分','楽しい','寂しい','不安','しんどい','嬉しい','眠い','疲れ','焦る','落ち込'],
+  app:['アプリ','Taka-Life','ミオ劇場','Gemini','ジェミニ','API','GitHub','Cloudflare']
+};
+function normalizeMioText(value){
+  return String(value||'').normalize('NFKC').toLowerCase();
+}
+function detectMioTags(text){
+  const normalized=normalizeMioText(text);
+  return Object.entries(MIO_TAG_RULES)
+    .filter(([,words])=>words.some(word=>normalized.includes(normalizeMioText(word))))
+    .map(([tag])=>tag);
+}
+function migrateLegacyMioMemory(){
+  if(localStorage.getItem(MIO_MEMORY_STORAGE))return;
+  try{
+    const legacy=JSON.parse(localStorage.getItem(LEGACY_MIO_MEMORY_STORAGE)||'[]');
+    if(!Array.isArray(legacy)||!legacy.length)return;
+    const migrated=legacy.map((item,index)=>{
+      const userMessage=String(item?.userMessage||'').slice(0,360);
+      return {
+        id:`legacy-${index}-${Date.parse(item?.at)||Date.now()}`,
+        at:item?.at||new Date().toISOString(),
+        userMessage,
+        summary:String(item?.finale||'').slice(0,220),
+        tags:detectMioTags(`${userMessage} ${item?.finale||''}`)
+      };
+    });
+    localStorage.setItem(MIO_MEMORY_STORAGE,JSON.stringify(migrated.slice(-MAX_MIO_MEMORY)));
+  }catch(e){}
+}
 function loadMioMemory(){
+  migrateLegacyMioMemory();
   try{
     const value=JSON.parse(localStorage.getItem(MIO_MEMORY_STORAGE)||'[]');
     return Array.isArray(value)?value.slice(-MAX_MIO_MEMORY):[];
@@ -195,12 +246,42 @@ function loadMioMemory(){
 }
 function saveMioMemory(userMessage,result){
   const memory=loadMioMemory();
+  const summary=[result?.devil1,result?.angel1,result?.finale].filter(Boolean).join(' ').slice(0,300);
+  const text=`${userMessage||''} ${summary}`;
   memory.push({
+    id:`mio-${Date.now()}`,
     at:new Date().toISOString(),
-    userMessage:String(userMessage||'').slice(0,240),
-    finale:String(result?.finale||'').slice(0,200)
+    userMessage:String(userMessage||'').slice(0,360),
+    summary,
+    tags:detectMioTags(text)
   });
   localStorage.setItem(MIO_MEMORY_STORAGE,JSON.stringify(memory.slice(-MAX_MIO_MEMORY)));
+}
+function scoreMioMemory(item,queryTags,queryText,index,total){
+  const itemTags=Array.isArray(item?.tags)?item.tags:detectMioTags(`${item?.userMessage||''} ${item?.summary||''}`);
+  const tagScore=itemTags.reduce((sum,tag)=>sum+(queryTags.includes(tag)?5:0),0);
+  const normalizedQuery=normalizeMioText(queryText);
+  const normalizedItem=normalizeMioText(`${item?.userMessage||''} ${item?.summary||''}`);
+  const keywords=normalizedQuery.split(/[\s、。！？,.!?:：／/]+/).filter(word=>word.length>=2);
+  const wordScore=keywords.reduce((sum,word)=>sum+(normalizedItem.includes(word)?2:0),0);
+  const recencyScore=total?((index+1)/total)*2:0;
+  return tagScore+wordScore+recencyScore;
+}
+function selectRelevantMioMemory(userText){
+  const memory=loadMioMemory();
+  const queryTags=detectMioTags(userText);
+  const ranked=memory.map((item,index)=>({
+    item,
+    score:scoreMioMemory(item,queryTags,userText,index,memory.length)
+  })).sort((a,b)=>b.score-a.score);
+  const matched=ranked.filter(entry=>entry.score>=3).slice(0,MAX_RELEVANT_MIO_MEMORY);
+  const selected=matched.length?matched:ranked.slice(0,Math.min(2,ranked.length));
+  return selected.map(({item})=>({
+    date:item.at?new Intl.DateTimeFormat('ja-JP',{month:'numeric',day:'numeric'}).format(new Date(item.at)):'',
+    userMessage:String(item.userMessage||'').slice(0,220),
+    summary:String(item.summary||'').slice(0,160),
+    tags:Array.isArray(item.tags)?item.tags:detectMioTags(`${item.userMessage||''} ${item.summary||''}`)
+  }));
 }
 function updateMioApiUi(){
   const saved=Boolean(getGeminiKey());
@@ -210,8 +291,8 @@ function updateMioApiUi(){
   const memoryCount=loadMioMemory().length;
   if(preview){
     preview.textContent=cur
-      ?`最新記録：${cur.date} ${cur.period} ${Number(cur.weight).toFixed(1)}kg ／ 目標 ${state.settings.targetWeight}kg ／ 最近の会話メモ ${memoryCount}件`
-      :`体重記録はまだありません。相談内容と最近の会話メモ ${memoryCount}件を使います。`;
+      ?`最新記録：${cur.date} ${cur.period} ${Number(cur.weight).toFixed(1)}kg ／ 目標 ${state.settings.targetWeight}kg ／ 記憶 ${memoryCount}件から関連情報だけ選びます`
+      :`体重記録はまだありません。記憶 ${memoryCount}件から相談に合う情報だけ選びます。`;
   }
 }
 function setMioAiStatus(message,type=''){
@@ -244,8 +325,9 @@ function buildMioContext(userText){
   const latestWeight=cur?Number(cur.weight):null;
   const heightM=Number(state.settings.heightCm)/100;
   const bmi=latestWeight&&heightM?Number((latestWeight/(heightM*heightM)).toFixed(1)):null;
+  const relevantMemory=selectRelevantMioMemory(userText);
   return {
-    user:{name:'タカ',heightCm:state.settings.heightCm,targetWeightKg:state.settings.targetWeight,healthPriority:'健康第一。無理な減量や断定的な医療助言は避ける。'},
+    profile:{...MIO_PROFILE,heightCm:state.settings.heightCm,targetWeightKg:state.settings.targetWeight},
     currentTime:{local:new Intl.DateTimeFormat('ja-JP',{dateStyle:'full',timeStyle:'short'}).format(now),weekday:new Intl.DateTimeFormat('ja-JP',{weekday:'long'}).format(now),dayPart:localDayPart(now)},
     weight:{
       latest:cur?{date:cur.date,period:cur.period,time:cur.time||'',kg:latestWeight,memo:cur.memo||'',bmi}:null,
@@ -254,47 +336,46 @@ function buildMioContext(userText){
       recentChangeKg:calcTrend(recent),
       recentRecords:recent
     },
-    recentMioConversations:loadMioMemory().slice(-3),
+    relevantMemories:relevantMemory,
+    inputTags:detectMioTags(userText),
     userMessage:userText
   };
 }
 function mioTheaterPrompt(context){
-  return `あなたはTaka-Lifeアプリの脚本家です。
-タカ専属の「ミオ劇場」を、日本語で自然な掛け合いとして作ってください。
+  return `あなたはTaka-Lifeの専属脚本家。タカを以前から知る二人のAI「デビルミオ」と「エンジェルミオ」の会話を作る。
 
-【登場人物】
-デビルミオ：茶目っ気があり、軽い関西弁。タカの味方で、意地悪や無責任な誘惑はしない。
-エンジェルミオ：優しく落ち着いた標準語。健康第一で、現実的に支える。
+最重要：無難な一般論や保健室の先生のような返答は禁止。今回の相談にある具体的な言葉を拾い、プロフィールや関連メモは自然に使える時だけ使う。関連メモを全部詰め込まず、今回に効く1〜2点だけ使う。記憶を使う場合も「記録によると」など機械的な言い方はしない。事実を捏造しない。
 
-【劇場の流れ】
-1. デビルミオが、タカの相談・曜日・時間帯・最近の記録を拾って明るく話す。
-2. エンジェルミオが、その気持ちを受け止めながら自然に返す。
-3. デビルミオが、直前のエンジェルの発言にも反応して別角度から軽くツッコむ。
-4. エンジェルミオが、直前のデビルの発言にも反応し、今日できる小さな助言をする。
-5. 最後に、二人の会話を受けた温かい締めの言葉を書く。
+【人物】
+デビルミオ：タカの味方。軽い関西弁で、愛のあるツッコミ、茶目っ気、具体的な一言を入れる。説教・意地悪・危険な誘惑は禁止。
+エンジェルミオ：優しい標準語。共感だけで終わらず、タカの性格や状況に合う現実的な提案を一つ入れる。デビルの発言にも自然に返す。
 
-【文章ルール】
-- 各セリフは45〜90文字程度。短すぎる一言は禁止。
-- 各セリフは1〜2文で、内容を具体的にする。
-- 同じ内容や同じ語尾を繰り返さない。
-- タカの相談内容を最優先し、情報がなければ現在時刻や体重推移を自然に使う。
-- 体重の一回の増減だけで良し悪しを断定しない。
-- 医療診断、薬の変更、絶食、急激な減量、過度な運動を勧めない。
-- JSON、Markdownのコードブロック、前置き、説明文は書かない。
-- 必ず以下の5つの見出しをこの順番で使い、各見出しの次の行にセリフを書く。
+【会話品質】
+- 4つのセリフが一続きの会話になること。各自が直前の発言を受ける。
+- 二人ともタカを『タカ』と呼ぶ。
+- デビル1は相談の具体点に触れ、最低1回はクスッとする表現を入れる。
+- エンジェル1は気持ちを言い換えて理解を示す。
+- デビル2はエンジェル1への反応＋別角度の本音を出す。
+- エンジェル2はデビル2を受け、今日できる小さな行動を一つだけ提案する。
+- フィナーレは二人らしい共同コメント。抽象的な美辞麗句だけにしない。
+- 各セリフ45〜100文字、1〜3文。同じ内容・語尾を繰り返さない。
+- 『焦らず』『無理せず』『水分を』『少し体を動かす』を定型句のように並べない。必要なら『今日は昼にスープを少し』『仕事を一つ終えたら5分休憩』のように相談に合わせて具体化する。
+- 相談と無関係なら、体重・健康・スタバ・読書を無理に持ち出さない。
+- 体重の単発変動を評価しすぎない。医療診断、薬の変更、絶食、急減量、過度な運動は勧めない。
 
+【出力形式】前置き・Markdown・説明は禁止。必ず次の順番。
 【デビル1】
-（セリフ）
+セリフ
 【エンジェル1】
-（セリフ）
+セリフ
 【デビル2】
-（セリフ）
+セリフ
 【エンジェル2】
-（セリフ）
+セリフ
 【フィナーレ】
-（セリフ）
+セリフ
 
-【タカの現在情報】
+【今回使える情報】
 ${JSON.stringify(context,null,2)}`;
 }
 function fetchWithTimeout(url,options={},timeoutMs=18000){
@@ -433,7 +514,7 @@ function parseMioTheater(text){
 function buildGenerateBody(context){
   return {
     contents:[{role:'user',parts:[{text:mioTheaterPrompt(context)}]}],
-    generationConfig:{maxOutputTokens:760,temperature:0.78}
+    generationConfig:{maxOutputTokens:900,temperature:0.88}
   };
 }
 function isModelUnavailable(err){return err?.status===404||/no longer available|not found|not supported for generatecontent/i.test(err?.message||'')}
@@ -570,7 +651,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.6.1';
+const APP_VERSION='2.6.5';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
