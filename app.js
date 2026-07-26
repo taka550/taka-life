@@ -119,7 +119,7 @@ $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${n
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.2.6.9 AI Mio Service =====
+// ===== Ver.2.7.0 AI Mio Service =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v4';
 const MIO_MEMORY_STORAGE='takaLife.mioMemory.v2';
@@ -391,85 +391,35 @@ function buildMioContext(userText){
   };
 }
 function mioTheaterPrompt(context){
-  return `あなたはTaka-Lifeの専属コメディ脚本家です。タカ専用の短い即興コント「ミオ劇場」を1本だけ作ってください。
+  return `あなたはTaka-Life専属のコメディ脚本家です。タカ向けの30秒ほどの「ミオ劇場」を1本作ってください。
 
-【最重要の会話ルール】
-この劇場には、最後まで変えてはいけない二つの基準があります。
-1. 固定テーマ：${context.mainTheme.label}
-2. 基準セリフ：エンジェル1
+【会話の軸】
+- 固定テーマ：${context.mainTheme.label}
+- 焦点：${context.mainTheme.focus}
+- angel1が劇場全体の基準セリフです。
+- 2ターン目以降は毎回「angel1の内容」と「直前の相手のセリフ」の両方を確認して返してください。
+- 固定テーマから最後まで離れないでください。連想で別テーマへ移ることも禁止です。
 
-エンジェル1を作った後は、残りの全セリフを作るたびに、必ず次の二つを同時に確認してください。
-- エンジェル1が示した出来事・焦点・空気感
-- 直前の相手のセリフに出た具体語・理屈・ボケ
+【役割】
+- エンジェルミオ：最初に話す司会・ツッコミ役。優しいが、説教や一般論にしない。
+- デビルミオ：エンジェルの話へ横から乱入する誘惑・ボケ役。軽い関西弁。新しい話題を始めない。
+- 二人ともタカの味方です。危険な行動や薬の変更は勧めません。
 
-直前の相手だけを見て会話を続けてはいけません。毎ターン必ずエンジェル1へ戻って軸を確認し、そのうえで直前の相手へ返してください。
-
-【今回の固定テーマ】
-テーマ名：「${context.mainTheme.label}」
-焦点：「${context.mainTheme.focus}」
-最初から最後まで、この焦点以外の話題へ移らないでください。連想で健康、体重、仕事、食事、ご褒美など別テーマへ飛ぶことも禁止です。ただし、それ自体が今回の固定テーマなら使用できます。
-
-【作品の目的】
-相談への正解を出すことではなく、エンジェルミオが自然に話し始め、デビルミオが横からちゃちゃを入れる30秒ほどの漫才にしてください。タカが少し笑えて、明日も読みたくなることを優先します。
-
-【二人の役割】
-- エンジェルミオ：最初に話す司会・進行・ツッコミ役。優しいが説教しない。
-- デビルミオ：エンジェルが始めた話へ乱入する誘惑・ボケ役。軽い関西弁。新しい話題は始めない。
-- 二人は仲良しで、どちらもタカの味方です。
-- 健康を害する行動や薬の変更は勧めません。
-
-【6ターンの作り方】
-1. angel1：入力またはアプリ情報から具体的な一件を拾い、固定テーマを明確にする。1〜2文で、デビルが割り込みやすい隙を残す。
-2. devil1：angel1の具体語を拾って、同じテーマのまま横からボケる。
-3. angel2：angel1の軸を確認してから、devil1の具体語へ直接ツッコみ、元の焦点へ戻す。
-4. devil2：angel1の軸を確認してから、angel2のツッコミへ言い返し、同じボケを一段だけ重ねる。
-5. angel3：angel1の軸を確認してから、devil2を具体的に拾ってツッコみ、同じテーマの中で自然に着地させる。
-6. devil3：angel1の軸を確認してから、angel3の言葉を使い、少し折れつつ小さなオチで締める。
+【流れ】
+1. angel1：入力やアプリ情報から具体的な一件を拾い、テーマを明確にする。デビルが割り込みやすい隙を残す。
+2. devil1：angel1の具体語を使って、同じテーマのままボケる。
+3. angel2：angel1の軸を保ち、devil1の具体語へ直接ツッコむ。
+4. devil2：angel1の軸を保ち、angel2へ言い返して同じボケを一段だけ重ねる。
+5. angel3：angel1の軸を保ち、devil2を具体的に拾って自然に着地させる。
+6. devil3：angel1の軸を保ち、angel3の言葉を使って少し折れつつ小さなオチで締める。
 7. finale：二人の共同コメントを短い一文で締める。
 
-【不自然さを防ぐ禁止事項】
-- 直前の相手の発言だけを追い、エンジェル1の内容から離れること。
-- 同じ情報の言い換えだけで終えること。
-- エンジェルが先に結論を出し切ること。
-- デビルが常識人、健康指導役、まとめ役になること。
-- 「自分のペースで」「無理せず」「焦らず」「大切ですね」など何にでも使える汎用文。
-- 毎回「ゼロカロリー」「ご褒美」だけに頼ること。
-- 事実の捏造、箇条書き、説明文、途中で切れた文。
-
-【長さ】
-- 各セリフはおおむね30〜75文字、1〜2文。
-- finaleは20〜45文字。
-- 文字数を守るために文を途中で切らず、必ず文末まで完成させる。
-- 全体を簡潔にし、長くなりそうなら内容を削って文を完結させる。
-
-【出力前の内部確認】
-全7項目を出力する前に、各セリフについて次を確認してください。
-- エンジェル1の内容を踏襲しているか
-- 直前の相手へ具体的に返しているか
-- 固定テーマから外れていないか
-- 文が最後まで完結しているか
-
-【出力形式】
-JSON、Markdown、コードフェンス、前置き、説明は禁止です。
-必ず次の見出しを、この順番・この表記のまま1回ずつ使ってください。各見出しの次の行に本文を書きます。最後は必ず ===END=== で閉じてください。
-
-===THEME===
-固定テーマを短く
-===ANGEL1===
-セリフ
-===DEVIL1===
-セリフ
-===ANGEL2===
-セリフ
-===DEVIL2===
-セリフ
-===ANGEL3===
-セリフ
-===DEVIL3===
-セリフ
-===FINALE===
-共同コメント
-===END===
+【文章ルール】
+- 各セリフは30〜75文字程度、1〜2文。finaleは20〜45文字程度。
+- すべて文末まで完成させてください。長くなりそうなら内容を削り、途中で切らないでください。
+- 「自分のペースで」「無理せず」「焦らず」「大切ですね」などの汎用文は禁止です。
+- デビルを健康指導役やまとめ役にしないでください。
+- 出力は指定されたJSONスキーマに従い、説明や前置きを付けないでください。
 
 【今回使える情報】
 ${JSON.stringify(context,null,2)}`;
@@ -535,85 +485,48 @@ function extractJsonObject(text){
     .replace(/```(?:json|text|markdown)?/gi,'')
     .replace(/```/g,'')
     .trim();
+  try{return JSON.parse(normalized)}catch(e){}
   const first=normalized.indexOf('{');
   const last=normalized.lastIndexOf('}');
   if(first<0||last<=first)return null;
   try{return JSON.parse(normalized.slice(first,last+1))}catch{return null}
 }
-function parseDelimitedMioTheater(text){
-  const normalized=String(text||'')
-    .replace(/```(?:text|json|markdown)?/gi,'')
-    .replace(/```/g,'')
-    .replace(/\r/g,'')
-    .trim();
-  const markers=['THEME','ANGEL1','DEVIL1','ANGEL2','DEVIL2','ANGEL3','DEVIL3','FINALE','END'];
-  const positions=[];
-  for(const marker of markers){
-    const token=`===${marker}===`;
-    const index=normalized.indexOf(token);
-    if(index<0)return null;
-    positions.push({marker,index,token});
-  }
-  for(let i=1;i<positions.length;i++)if(positions[i].index<=positions[i-1].index)return null;
-  const result={};
-  for(let i=0;i<positions.length-1;i++){
-    const current=positions[i];
-    const next=positions[i+1];
-    const raw=normalized.slice(current.index+current.token.length,next.index).trim();
-    if(!raw)return null;
-    const key=current.marker.toLowerCase();
-    result[key]=current.marker==='THEME'
-      ?cleanMioText(raw).replace(/[。！？!?]$/,'')
-      :cleanMioText(raw);
-  }
-  return result;
-}
 function parseMioTheater(text){
   const slots=['angel1','devil1','angel2','devil2','angel3','devil3','finale'];
-  const delimited=parseDelimitedMioTheater(text);
-  if(delimited&&slots.every(slot=>typeof delimited[slot]==='string'&&delimited[slot].trim()))return delimited;
-
-  // Ver.2.6.8以前のJSON形式も、保存済み応答やモデル差異への保険として読み取る。
   const json=extractJsonObject(text);
-  if(json&&slots.every(slot=>typeof json[slot]==='string'&&json[slot].trim())){
-    const result={theme:cleanMioText(json.theme||'').replace(/[。！？!?]$/,'')};
-    for(const slot of slots)result[slot]=cleanMioText(json[slot]);
-    return result;
+  if(!json||!slots.every(slot=>typeof json[slot]==='string'&&json[slot].trim())){
+    throw new Error('Geminiの返答形式が崩れました。もう一度作成してください。');
   }
-
-  // 見出し表記が少し崩れた場合の最終保険。
-  const normalized=String(text||'')
-    .replace(/```(?:text|json|markdown)?/gi,'')
-    .replace(/```/g,'')
-    .replace(/\r/g,'')
-    .trim();
-  const labels=[
-    {slot:'angel1',pattern:'(?:エンジェル\\s*1|エンジェル①|ANGEL\\s*1)'},
-    {slot:'devil1',pattern:'(?:デビル\\s*1|デビル①|DEVIL\\s*1)'},
-    {slot:'angel2',pattern:'(?:エンジェル\\s*2|エンジェル②|ANGEL\\s*2)'},
-    {slot:'devil2',pattern:'(?:デビル\\s*2|デビル②|DEVIL\\s*2)'},
-    {slot:'angel3',pattern:'(?:エンジェル\\s*3|エンジェル③|ANGEL\\s*3)'},
-    {slot:'devil3',pattern:'(?:デビル\\s*3|デビル③|DEVIL\\s*3)'},
-    {slot:'finale',pattern:'(?:フィナーレ|まとめ|FINALE)'}
-  ];
-  const result={};
-  for(let i=0;i<labels.length;i++){
-    const current=labels[i],next=labels[i+1];
-    const endPattern=next?`(?=\\s*[【\\[]?${next.pattern}[】\\]]?\\s*[:：-]?)`:'$';
-    const regex=new RegExp(`[【\\[]?${current.pattern}[】\\]]?\\s*[:：-]?\\s*([\\s\\S]*?)${endPattern}`,'i');
-    const match=normalized.match(regex);
-    if(match?.[1])result[current.slot]=cleanMioText(match[1]);
-  }
-  if(slots.every(slot=>result[slot]))return result;
-  throw new Error('ミオ劇場のセリフを最後まで読み取れませんでした。もう一度作成してください。');
+  const result={theme:cleanMioText(json.theme||'今日の話題').replace(/[。！？!?]$/,'')};
+  for(const slot of slots)result[slot]=cleanMioText(json[slot]);
+  return result;
 }
-function buildGenerateBody(context){
+function buildGenerateBody(context,model){
+  const stringField=description=>({type:'STRING',description});
+  const generationConfig={
+    responseMimeType:'application/json',
+    responseSchema:{
+      type:'OBJECT',
+      properties:{
+        theme:stringField('今回の固定テーマを短く表した言葉'),
+        angel1:stringField('エンジェルの最初の基準セリフ。30〜75文字程度で完結'),
+        devil1:stringField('angel1の具体語を拾うデビルのボケ。30〜75文字程度で完結'),
+        angel2:stringField('angel1の軸を保ちdevil1へ直接返すツッコミ。30〜75文字程度で完結'),
+        devil2:stringField('angel1の軸を保ちangel2へ言い返すボケ。30〜75文字程度で完結'),
+        angel3:stringField('angel1の軸を保ちdevil2を拾って着地するセリフ。30〜75文字程度で完結'),
+        devil3:stringField('angel1の軸を保ちangel3を拾う小さなオチ。30〜75文字程度で完結'),
+        finale:stringField('二人の共同コメント。20〜45文字程度で完結')
+      },
+      required:['theme','angel1','devil1','angel2','devil2','angel3','devil3','finale']
+    },
+    maxOutputTokens:2048,
+    temperature:0.78
+  };
+  if(/^gemini-3/i.test(model))generationConfig.thinkingConfig={thinkingLevel:'LOW'};
+  else if(/^gemini-2\.5-(?:flash|flash-lite)/i.test(model))generationConfig.thinkingConfig={thinkingBudget:0};
   return {
     contents:[{role:'user',parts:[{text:mioTheaterPrompt(context)}]}],
-    generationConfig:{
-      maxOutputTokens:1800,
-      temperature:0.82
-    }
+    generationConfig
   };
 }
 function isModelUnavailable(err){return err?.status===404||/no longer available|not found|not supported for generatecontent/i.test(err?.message||'')}
@@ -645,11 +558,13 @@ async function callGeminiForMio(userText,options={}){
       incrementGeminiUsage();
       const data=await geminiFetch(`/models/${encodeURIComponent(model)}:generateContent`,key,{
         method:'POST',
-        body:buildGenerateBody(context),
+        body:buildGenerateBody(context,model),
         timeoutMs:22000
       });
       const text=extractCandidateText(data);
+      const finishReason=data?.candidates?.[0]?.finishReason||'';
       if(!text)throw new Error('ミオから返事がありませんでした。');
+      if(finishReason==='MAX_TOKENS')throw new Error('Geminiの返答が上限で途中終了しました。もう一度作成してください。');
       return parseMioTheater(text);
     }catch(err){
       if(isModelUnavailable(err)&&attempt===0){
@@ -752,7 +667,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.6.9';
+const APP_VERSION='2.7.0';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
