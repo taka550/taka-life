@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Taka-Life" />
-  <link rel="manifest" href="manifest.webmanifest?v=2.8.3" />
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.8.3" />
-  <link rel="stylesheet" href="styles.css?v=2.8.3" />
+  <link rel="manifest" href="manifest.webmanifest?v=2.8.4" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.8.4" />
+  <link rel="stylesheet" href="styles.css?v=2.8.4" />
   <title>Taka-Life｜Rich Life with Mio</title>
 </head>
 <body id="top">
@@ -187,7 +187,16 @@
           <div><strong id="latestHba1c">--</strong><em>%</em></div>
           <small id="latestHba1cMeta">まだ記録がありません</small>
         </article>
-        <button class="latest-history-link" type="button" data-scroll-target="hba1cSection"><span aria-hidden="true">▤</span>記録を見る <b>›</b></button>
+        <article class="health-score-panel" aria-label="今週の健康スコア">
+          <p class="health-score-kicker">HEALTH SCORE</p>
+          <div class="health-score-main"><strong id="healthScore">--</strong><span>/100</span></div>
+          <div class="health-score-status"><b id="healthScoreLabel">記録待ち</b><small id="healthScoreDelta">データを記録してね</small></div>
+        </article>
+      </div>
+
+      <div class="health-comment-panel" aria-live="polite">
+        <div class="health-comment-title"><span aria-hidden="true">✦</span><b>ミオからのひとこと</b></div>
+        <p id="healthOverallComment">体重・血圧・HbA1cを記録すると、ここに全体のコメントが表示されます。</p>
       </div>
     </section>
 
@@ -389,6 +398,6 @@
     <a href="#historySection" data-scroll="history"><span>▤</span><small>履歴</small></a>
   </nav>
 
-  <script src="app.js?v=2.8.3"></script>
+  <script src="app.js?v=2.8.4"></script>
 </body>
 </html>

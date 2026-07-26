@@ -765,14 +765,24 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
 .latest-vitals-row{display:grid;grid-template-columns:1fr 1fr;margin-top:7px;border-top:1px solid rgba(183,154,91,.34);border-bottom:1px solid rgba(183,154,91,.34)}
 .latest-record-item{min-height:0!important;padding:15px 12px!important;border:0!important;border-radius:0!important;background:transparent!important;display:block!important}
 .latest-vitals-row .latest-record-item+ .latest-record-item{border-left:1px solid rgba(183,154,91,.28)!important}
-.bp-metric strong{display:inline;font-family:Georgia,"Times New Roman",serif;font-size:clamp(25px,7.6vw,37px)!important;font-weight:500!important;letter-spacing:-.045em!important;color:#281e18!important;line-height:1}
+.bp-metric strong{display:inline-block;font-family:Georgia,"Times New Roman",serif;font-size:clamp(29px,7.8vw,37px)!important;font-weight:500!important;letter-spacing:-.045em!important;color:#281e18!important;line-height:1;min-width:0}
 .bp-metric em,.latest-hba-row em{font-family:Georgia,"Times New Roman",serif;font-style:normal;font-size:10px;color:#483a31;margin-left:3px}
 .pulse-line{margin:8px 0 5px;font-size:11px;color:#695c53}.pulse-line:first-letter{color:#c6973e}
 .latest-record-item small{display:block;margin-top:0!important;font-family:"Yu Mincho","Hiragino Mincho ProN",Georgia,serif;font-size:10px!important;color:#776a62!important;white-space:nowrap}
 .latest-hba-row{display:grid;grid-template-columns:1fr 1fr;align-items:center}
 .latest-hba1c-item strong{font-family:Georgia,"Times New Roman",serif;font-size:clamp(34px,10vw,48px)!important;font-weight:500!important;letter-spacing:-.04em!important;color:#281e18!important}
-.latest-history-link{height:60px;margin:0;padding:0 8px;border:0;border-left:1px solid rgba(183,154,91,.28);background:transparent;color:#3b2c23;display:flex;align-items:center;justify-content:center;gap:9px;font-family:"Yu Mincho","Hiragino Mincho ProN",Georgia,serif;font-size:13px;font-weight:650}
-.latest-history-link span{font-size:22px;color:#bd9140}.latest-history-link b{font-size:22px;color:#a87e32;font-weight:400}
+.health-score-panel{min-height:94px;padding:13px 10px 10px 18px;border-left:1px solid rgba(183,154,91,.28);display:flex;flex-direction:column;justify-content:center}
+.health-score-kicker{margin:0 0 2px;font-family:Georgia,"Times New Roman",serif;font-size:9px;letter-spacing:.16em;color:#b08a45}
+.health-score-main{display:flex;align-items:baseline;gap:3px;line-height:1}
+.health-score-main strong{font-family:Georgia,"Times New Roman",serif;font-size:clamp(34px,9.5vw,46px);font-weight:500;letter-spacing:-.04em;color:#281e18}
+.health-score-main span{font-family:Georgia,"Times New Roman",serif;font-size:11px;color:#74665c}
+.health-score-status{display:flex;align-items:center;gap:7px;margin-top:5px;white-space:nowrap}
+.health-score-status b{padding:3px 8px;border-radius:999px;background:#e2f0df;color:#287843;font-size:10px}
+.health-score-status small{font-size:9px;color:#7c6d63}
+.health-comment-panel{margin-top:11px;padding:11px 13px;border:1px solid rgba(183,154,91,.22);border-radius:15px;background:linear-gradient(135deg,rgba(255,255,255,.68),rgba(248,239,222,.58));box-shadow:inset 0 1px 0 rgba(255,255,255,.75)}
+.health-comment-title{display:flex;align-items:center;gap:7px;margin-bottom:5px;color:#a97d31;font-family:"Yu Mincho","Hiragino Mincho ProN",Georgia,serif;font-size:11px;letter-spacing:.04em}
+.health-comment-title span{font-size:13px}.health-comment-title b{font-weight:700}
+.health-comment-panel p{margin:0;color:#55473e;font-family:"Yu Mincho","Hiragino Mincho ProN",Georgia,serif;font-size:11px;line-height:1.7}
 @media(max-width:390px){
   .luxury-records{padding:21px 17px 18px}
   .latest-primary-row{grid-template-columns:1.04fr .96fr}
@@ -785,7 +795,7 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
   .bmi-scale-labels{font-size:7px}.bmi-scale{margin-top:8px}
   .latest-record-item{padding:14px 8px!important}
   .metric-title{font-size:12px;gap:6px}.time-icon{font-size:15px}
-  .bp-metric strong{font-size:25px!important}.bp-metric em{font-size:8px}
+  .bp-metric strong{font-size:27px!important}.bp-metric em{font-size:8px}
   .pulse-line{font-size:10px}.latest-record-item small{font-size:8.7px!important}
-  .latest-history-link{font-size:11px;gap:6px}.latest-history-link span{font-size:19px}
+  .health-score-panel{padding-left:12px}.health-score-main strong{font-size:35px}.health-score-status{gap:4px}.health-score-status b{font-size:8.5px;padding:3px 6px}.health-score-status small{font-size:7.8px}.health-comment-panel{padding:10px 11px}.health-comment-panel p{font-size:10px;line-height:1.65}
 }

@@ -73,7 +73,63 @@ function renderLatestRecords(){
   const hba=state.hba1cRecords.at(-1);
   if($('latestHba1c'))$('latestHba1c').textContent=hba?Number(hba.value).toFixed(1):'--';
   if($('latestHba1cMeta'))$('latestHba1cMeta').textContent=hba?formatRecordDate(hba.date,''):'まだ記録がありません';
+  renderHealthScore();
 }
+
+function calculateHealthScore(){
+  let score=65;
+  let parts=0;
+  const notes=[];
+
+  const weights=state.records||[];
+  if(weights.length){
+    parts++;
+    const latest=weights.at(-1);
+    const sevenDaysAgo=new Date(`${latest.date}T12:00:00`);sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+    const base=[...weights].reverse().find(r=>new Date(`${r.date}T${r.time||'12:00'}:00`)<=sevenDaysAgo)||weights[0];
+    const diff=Number(latest.weight)-Number(base.weight);
+    if(diff<=-0.2){score+=7;notes.push('体重は落ち着いて減ってきてるね');}
+    else if(Math.abs(diff)<0.5){score+=4;notes.push('体重は安定してるね');}
+    else {score-=3;notes.push('体重は少しだけ様子を見よう');}
+  }
+
+  const bps=Array.isArray(state.bloodPressureRecords)?state.bloodPressureRecords:[];
+  if(bps.length){
+    parts++;
+    const recent=bps.slice(-2);
+    const sys=recent.reduce((a,r)=>a+Number(r.systolic),0)/recent.length;
+    const dia=recent.reduce((a,r)=>a+Number(r.diastolic),0)/recent.length;
+    if(sys<120&&dia<80){score+=10;notes.push('血圧はとても穏やか');}
+    else if(sys<130&&dia<85){score+=7;notes.push('血圧は安定してるね');}
+    else if(sys<140&&dia<90){score+=2;notes.push('血圧は無理せず見守ろう');}
+    else {score-=6;notes.push('血圧は次の測定も丁寧に見ていこう');}
+  }
+
+  const hbas=Array.isArray(state.hba1cRecords)?state.hba1cRecords:[];
+  if(hbas.length){
+    parts++;
+    const v=Number(hbas.at(-1).value);
+    if(v<=6.5){score+=10;notes.push('HbA1cも良い流れ');}
+    else if(v<=7.0){score+=7;notes.push('HbA1cはしっかり管理できてるね');}
+    else if(v<=8.0){score+=2;notes.push('HbA1cは焦らず積み重ねよう');}
+    else {score-=6;notes.push('HbA1cは次回の変化を一緒に見よう');}
+  }
+
+  if(parts===0)return {score:null,label:'記録待ち',delta:'データを記録してね',comment:'体重・血圧・HbA1cを記録すると、ここに全体のコメントが表示されます。'};
+  score=Math.max(0,Math.min(100,Math.round(score)));
+  const label=score>=85?'とても良好':score>=70?'良好':score>=55?'まずまず':'ゆっくり改善';
+  const delta=parts===3?'3項目から算出':`${parts}項目から算出`;
+  const comment=`${notes.slice(0,2).join('。')}。この調子で、無理せず今日の記録を積み重ねていこうね。`;
+  return {score,label,delta,comment};
+}
+function renderHealthScore(){
+  const result=calculateHealthScore();
+  if($('healthScore'))$('healthScore').textContent=result.score??'--';
+  if($('healthScoreLabel'))$('healthScoreLabel').textContent=result.label;
+  if($('healthScoreDelta'))$('healthScoreDelta').textContent=result.delta;
+  if($('healthOverallComment'))$('healthOverallComment').textContent=result.comment;
+}
+
 function renderSummary(){const recs=state.records;if(!recs.length)return;const cur=recs.at(-1);const sevenDaysAgo=new Date(`${cur.date}T12:00:00`);sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);const base=[...recs].reverse().find(r=>new Date(`${r.date}T${r.time||'12:00'}:00`)<=sevenDaysAgo)||recs[0];const change=cur.weight-base.weight;const recent=recs.slice(-7);const avg=recent.reduce((s,r)=>s+r.weight,0)/recent.length;$('weekChange').textContent=`${change>=0?'+':''}${fmt(change)} kg`;$('recentAverage').textContent=`${fmt(avg)} kg`;$('recordCount').textContent=`${recs.length}回`}
 
 function sortBloodPressureRecords(){
@@ -845,7 +901,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.8.0';
+const APP_VERSION='2.8.4';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
