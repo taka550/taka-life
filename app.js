@@ -119,7 +119,7 @@ $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${n
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.2.6.7 AI Mio Service =====
+// ===== Ver.2.6.8 AI Mio Service =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v4';
 const MIO_MEMORY_STORAGE='takaLife.mioMemory.v2';
@@ -391,69 +391,76 @@ function buildMioContext(userText){
   };
 }
 function mioTheaterPrompt(context){
-  return `あなたはTaka-Lifeの専属コメディ脚本家です。タカ専用の短い即興コント「ミオ劇場」を1本だけ書いてください。
+  return `あなたはTaka-Lifeの専属コメディ脚本家です。タカ専用の短い即興コント「ミオ劇場」を1本だけ作ってください。
 
-【最優先】
-これは相談回答ではなく、エンジェルミオが自然に話し始めたところへ、デビルミオが横からちゃちゃを入れて始まる30秒ほどの漫才です。各セリフは直前のセリフを受け、会話の自然さを最優先してください。
+【最重要の会話ルール】
+この劇場には、最後まで変えてはいけない二つの基準があります。
+1. 固定テーマ：${context.mainTheme.label}
+2. 基準セリフ：エンジェル1
 
-【今回の舞台となる話題】
-メインテーマは「${context.mainTheme.label}」です。
-話題の焦点は「${context.mainTheme.focus}」です。
-最初から最後まで、この焦点から別の話題へ移らないでください。
+エンジェル1を作った後は、残りの全セリフを作るたびに、必ず次の二つを同時に確認してください。
+- エンジェル1が示した出来事・焦点・空気感
+- 直前の相手のセリフに出た具体語・理屈・ボケ
 
-【二人の関係】
-二人は仲良しで、どちらもタカの味方です。エンジェルは舞台を整える司会役、デビルは横から乱入するボケ役です。健康を害する行動や薬の変更などは勧めません。
+直前の相手だけを見て会話を続けてはいけません。毎ターン必ずエンジェル1へ戻って軸を確認し、そのうえで直前の相手へ返してください。
 
-【エンジェルミオ】
-- 最初に話す。タカの入力があれば、その具体的な出来事や言葉を必ず一つ拾う。
-- 入力が空なら、渡されたアプリ情報のうちメインテーマに関係する事実を一つだけ拾う。
-- 初手は1〜2文。状況を受け止め、少し話を広げて、デビルが割り込みやすい隙を作る。
-- 「言葉にできて大切です」「自分のペースで」「無理せず」「焦らず」など、何にでも使える汎用文は禁止。
-- デビルのボケには、その言葉を具体的に拾って笑いながらツッコむ。説教や長い助言は禁止。
+【今回の固定テーマ】
+テーマ名：「${context.mainTheme.label}」
+焦点：「${context.mainTheme.focus}」
+最初から最後まで、この焦点以外の話題へ移らないでください。連想で健康、体重、仕事、食事、ご褒美など別テーマへ飛ぶことも禁止です。ただし、それ自体が今回の固定テーマなら使用できます。
 
-【デビルミオ】
-- エンジェルの発言に横からちゃちゃを入れる、誘惑・ボケ担当。軽い関西弁。
-- 必ず直前のエンジェルの具体語を一つ拾い、ツッコミ待ちのボケを一つだけ入れる。
-- 自分から新しい話題を始めない。健康指導や現実的なまとめを担当しない。
-- 2回目はエンジェルのツッコミへ言い返す。3回目は少し折れつつ、小さなボケで締める。
-- 毎回同じ「ゼロカロリー」「ご褒美」だけに頼らない。
+【作品の目的】
+相談への正解を出すことではなく、エンジェルミオが自然に話し始め、デビルミオが横からちゃちゃを入れる30秒ほどの漫才にしてください。タカが少し笑えて、明日も読みたくなることを優先します。
 
-【必ず守る6ターン】
-1. エンジェル1：入力またはアプリ情報を具体的に拾い、自然に話を広げる。
-2. デビル1：エンジェル1の具体語に横からちゃちゃを入れ、誘惑かボケをする。
-3. エンジェル2：デビル1の言葉を拾って直接ツッコみ、タカの状況へ戻す。
-4. デビル2：エンジェル2のツッコミへ言い返し、同じ話題でボケを一段だけ重ねる。
-5. エンジェル3：デビル2をもう一度拾ってツッコみ、今日の自然な着地点を一つ示す。
-6. デビル3：少し折れながら、直前の言葉を使った小さなオチで締める。
-フィナーレ：二人の共同コメントを短く一文。説教や抽象的な美辞麗句は禁止。
+【二人の役割】
+- エンジェルミオ：最初に話す司会・進行・ツッコミ役。優しいが説教しない。
+- デビルミオ：エンジェルが始めた話へ乱入する誘惑・ボケ役。軽い関西弁。新しい話題は始めない。
+- 二人は仲良しで、どちらもタカの味方です。
+- 健康を害する行動や薬の変更は勧めません。
 
-【会話を自然にするルール】
-- 各ターンの冒頭または前半で、直前のセリフに出た具体語・理屈・ボケへ反応する。
-- 同じ情報を言い換えるだけではなく、「受ける→返す」の因果関係を作る。
-- エンジェルが先に結論を出し切らない。デビルが入る余地を残す。
-- デビルが途中で常識人や健康指導役に変わらない。
-- プロフィールや記憶は、メインテーマに自然に効く場合だけ最大1点使う。無理に盛り込まない。
-- 事実を捏造しない。二人ともタカを「タカ」と呼ぶ。
-- 各セリフ30〜75文字、1〜2文。途中で切れた文、箇条書き、説明文は禁止。
+【6ターンの作り方】
+1. angel1：入力またはアプリ情報から具体的な一件を拾い、固定テーマを明確にする。1〜2文で、デビルが割り込みやすい隙を残す。
+2. devil1：angel1の具体語を拾って、同じテーマのまま横からボケる。
+3. angel2：angel1の軸を確認してから、devil1の具体語へ直接ツッコみ、元の焦点へ戻す。
+4. devil2：angel1の軸を確認してから、angel2のツッコミへ言い返し、同じボケを一段だけ重ねる。
+5. angel3：angel1の軸を確認してから、devil2を具体的に拾ってツッコみ、同じテーマの中で自然に着地させる。
+6. devil3：angel1の軸を確認してから、angel3の言葉を使い、少し折れつつ小さなオチで締める。
+7. finale：二人の共同コメントを短い一文で締める。
 
-【出力前の自己確認】
-エンジェルから始まった／デビルが横から入った／全ターンが直前の発言を拾った／話題が一つ／役割が最後まで崩れていない。この5点を満たしてから出力してください。
+【不自然さを防ぐ禁止事項】
+- 直前の相手の発言だけを追い、エンジェル1の内容から離れること。
+- 同じ情報の言い換えだけで終えること。
+- エンジェルが先に結論を出し切ること。
+- デビルが常識人、健康指導役、まとめ役になること。
+- 「自分のペースで」「無理せず」「焦らず」「大切ですね」など何にでも使える汎用文。
+- 毎回「ゼロカロリー」「ご褒美」だけに頼ること。
+- 事実の捏造、箇条書き、説明文、途中で切れた文。
 
-【出力形式】前置き・Markdown・説明は禁止。必ずこの順番。
-【エンジェル1】
-セリフ
-【デビル1】
-セリフ
-【エンジェル2】
-セリフ
-【デビル2】
-セリフ
-【エンジェル3】
-セリフ
-【デビル3】
-セリフ
-【フィナーレ】
-セリフ
+【長さ】
+- 各セリフはおおむね35〜90文字、1〜2文。
+- finaleは20〜55文字。
+- 文字数を守るために文を途中で切らず、必ず文末まで完成させる。
+- 全体を簡潔にし、長くなりそうなら内容を削って文を完結させる。
+
+【出力前の内部確認】
+全7項目を出力する前に、各セリフについて次を確認してください。
+- エンジェル1の内容を踏襲しているか
+- 直前の相手へ具体的に返しているか
+- 固定テーマから外れていないか
+- 文が最後まで完結しているか
+
+【出力形式】
+前置き、Markdown、コードフェンス、説明は禁止です。次のキーを持つJSONオブジェクトだけを返してください。
+{
+  "theme": "固定テーマを短く",
+  "angel1": "セリフ",
+  "devil1": "セリフ",
+  "angel2": "セリフ",
+  "devil2": "セリフ",
+  "angel3": "セリフ",
+  "devil3": "セリフ",
+  "finale": "共同コメント"
+}
 
 【今回使える情報】
 ${JSON.stringify(context,null,2)}`;
@@ -514,93 +521,59 @@ function cleanMioText(value){
   if(text&&!/[。！？!?]$/.test(text))text+='。';
   return text;
 }
+function extractJsonObject(text){
+  const normalized=String(text||'')
+    .replace(/```(?:json|text|markdown)?/gi,'')
+    .replace(/```/g,'')
+    .trim();
+  const first=normalized.indexOf('{');
+  const last=normalized.lastIndexOf('}');
+  if(first<0||last<=first)return null;
+  try{return JSON.parse(normalized.slice(first,last+1))}catch{return null}
+}
 function parseMioTheater(text){
+  const slots=['angel1','devil1','angel2','devil2','angel3','devil3','finale'];
+  const json=extractJsonObject(text);
+  if(json&&slots.every(slot=>typeof json[slot]==='string'&&json[slot].trim())){
+    const result={theme:cleanMioText(json.theme||'').replace(/[。！？!?]$/,'')};
+    for(const slot of slots)result[slot]=cleanMioText(json[slot]);
+    return result;
+  }
+
+  // 旧形式も読み取れるように残す。GeminiがJSONを外した場合の保険。
   const normalized=String(text||'')
     .replace(/```(?:text|json|markdown)?/gi,'')
     .replace(/```/g,'')
     .replace(/\r/g,'')
     .trim();
-
   const labels=[
-    {slot:'angel1',pattern:'(?:エンジェル\s*1|エンジェル①|ANGEL\s*1)'},
-    {slot:'devil1',pattern:'(?:デビル\s*1|デビル①|DEVIL\s*1)'},
-    {slot:'angel2',pattern:'(?:エンジェル\s*2|エンジェル②|ANGEL\s*2)'},
-    {slot:'devil2',pattern:'(?:デビル\s*2|デビル②|DEVIL\s*2)'},
-    {slot:'angel3',pattern:'(?:エンジェル\s*3|エンジェル③|ANGEL\s*3)'},
-    {slot:'devil3',pattern:'(?:デビル\s*3|デビル③|DEVIL\s*3)'},
+    {slot:'angel1',pattern:'(?:エンジェル\\s*1|エンジェル①|ANGEL\\s*1)'},
+    {slot:'devil1',pattern:'(?:デビル\\s*1|デビル①|DEVIL\\s*1)'},
+    {slot:'angel2',pattern:'(?:エンジェル\\s*2|エンジェル②|ANGEL\\s*2)'},
+    {slot:'devil2',pattern:'(?:デビル\\s*2|デビル②|DEVIL\\s*2)'},
+    {slot:'angel3',pattern:'(?:エンジェル\\s*3|エンジェル③|ANGEL\\s*3)'},
+    {slot:'devil3',pattern:'(?:デビル\\s*3|デビル③|DEVIL\\s*3)'},
     {slot:'finale',pattern:'(?:フィナーレ|まとめ|FINALE)'}
   ];
   const result={};
-
   for(let i=0;i<labels.length;i++){
-    const current=labels[i];
-    const next=labels[i+1];
+    const current=labels[i],next=labels[i+1];
     const endPattern=next?`(?=\\s*[【\\[]?${next.pattern}[】\\]]?\\s*[:：-]?)`:'$';
     const regex=new RegExp(`[【\\[]?${current.pattern}[】\\]]?\\s*[:：-]?\\s*([\\s\\S]*?)${endPattern}`,'i');
     const match=normalized.match(regex);
     if(match?.[1])result[current.slot]=cleanMioText(match[1]);
   }
-
-  // Fallback 1: one non-heading paragraph per line
-  if(Object.keys(result).length<7){
-    const chunks=normalized
-      .split(/\n+/)
-      .map(line=>line
-        .replace(/^\s*[【\[]?(?:デビル\s*[123①②③]?|エンジェル\s*[123①②③]?|フィナーレ|まとめ|DEVIL\s*[123]?|ANGEL\s*[123]?|FINALE)[】\]]?\s*[:：-]?\s*/i,'')
-        .trim())
-      .filter(line=>line.length>=16);
-
-    const slots=['angel1','devil1','angel2','devil2','angel3','devil3','finale'];
-    for(let i=0;i<slots.length;i++){
-      if(!result[slots[i]]&&chunks[i])result[slots[i]]=cleanMioText(chunks[i]);
-    }
-  }
-
-  // Fallback 2: split a prose answer by sentence groups.
-  if(Object.keys(result).length<7){
-    const sentences=(normalized.match(/[^。！？!?]+[。！？!?]/g)||[])
-      .map(value=>cleanMioText(value))
-      .filter(value=>value.length>=12);
-    if(sentences.length>=7){
-      const slots=['angel1','devil1','angel2','devil2','angel3','devil3','finale'];
-      const groups=[
-        sentences.slice(0,1),
-        sentences.slice(1,2),
-        sentences.slice(2,3),
-        sentences.slice(3,4),
-        sentences.slice(4,5),
-        sentences.slice(5,6),
-        sentences.slice(6)
-      ];
-      slots.forEach((slot,index)=>{
-        if(!result[slot]&&groups[index].length)result[slot]=cleanMioText(groups[index].join(''));
-      });
-    }
-  }
-
-  const fallbacks={
-    angel1:'タカ、今日はここまでの記録を見ながら、今いちばん気になることを一つだけ話しましょう。',
-    devil1:'一つだけなん？ ほな、その一つを三倍に膨らませて盛大に始めよか。',
-    angel2:'三倍にしたら話が散らかります（笑）。今日は最初に選んだ一つでいきますよ。',
-    devil2:'散らかすんやない、話題を豪華に飾り付けてるだけや。',
-    angel3:'飾り付けも一つで十分です（笑）。タカ、今日はその話を気持ちよく締めましょう。',
-    devil3:'しゃあないな。ほな飾りは小さいリボン一個だけにしとくわ。',
-    finale:'今日は一つの話を、二人で楽しく締めました。'
-  };
-
-  const slots=['angel1','devil1','angel2','devil2','angel3','devil3','finale'];
-  const foundCount=slots.filter(slot=>result[slot]).length;
-  if(foundCount===0)throw new Error('ミオ劇場の文章を読み取れませんでした。');
-
-  for(const slot of slots){
-    if(!result[slot])result[slot]=fallbacks[slot];
-  }
-  return result;
+  if(slots.every(slot=>result[slot]))return result;
+  throw new Error('ミオ劇場のJSONを最後まで読み取れませんでした。もう一度作成してください。');
 }
 function buildGenerateBody(context){
   return {
     contents:[{role:'user',parts:[{text:mioTheaterPrompt(context)}]}],
-    generationConfig:{maxOutputTokens:1200,temperature:0.92}
+    generationConfig:{
+      maxOutputTokens:1000,
+      temperature:0.86,
+      responseMimeType:'application/json'
+    }
   };
 }
 function isModelUnavailable(err){return err?.status===404||/no longer available|not found|not supported for generatecontent/i.test(err?.message||'')}
@@ -739,7 +712,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.6.7';
+const APP_VERSION='2.6.8';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;

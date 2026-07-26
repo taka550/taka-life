@@ -463,7 +463,7 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
 
 
 /* =========================================================
-   Ver.2.6.7 — Gemini Mio
+   Ver.2.6.8 — Gemini Mio
    API key remains local to this browser profile.
    ========================================================= */
 .ai-theater-action{
@@ -586,7 +586,7 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
 }
 
 
-/* Ver.2.6.7 — AI Mio memory note */
+/* Ver.2.6.8 — AI Mio memory note */
 .mio-memory-note{
   margin:-3px 1px 2px;
   color:#786b63;
@@ -632,4 +632,22 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
   font-size:.78rem;
   opacity:.68;
   line-height:1.45;
+}
+
+/* Ver.2.6.8 — Mio Theater dialogue is always shown in full. */
+.theater-v220 .speech,
+.theater-v230 .speech{
+  overflow:visible;
+  max-height:none;
+}
+.theater-v220 .speech p,
+.theater-v230 .speech p,
+.theater-finale p{
+  display:block;
+  max-height:none;
+  overflow:visible;
+  white-space:normal;
+  text-overflow:clip;
+  -webkit-line-clamp:unset;
+  -webkit-box-orient:initial;
 }
