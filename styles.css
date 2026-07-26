@@ -672,3 +672,26 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
 #bpSaveMessage[data-type="success"]{color:#30714a}
 #bpSaveMessage[data-type="error"]{color:#a23f42}
 @media(max-width:390px){.bp-value-grid{grid-template-columns:1fr}.bp-latest strong{font-size:1.18rem}}
+
+
+/* Ver.2.8.1 — Health dashboard and blood glucose */
+.health-dashboard{scroll-margin-top:88px}
+.health-dashboard-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.health-dashboard-item{display:flex;flex-direction:column;gap:5px;min-height:116px;padding:16px;border:1px solid rgba(94,74,60,.13);border-radius:18px;background:rgba(255,255,255,.58)}
+.health-dashboard-item span{font-size:.76rem;font-weight:800;letter-spacing:.06em;color:#776a62}
+.health-dashboard-item strong{font-size:1.35rem;line-height:1.15;color:#2f2722}
+.health-dashboard-item small{margin-top:auto;color:#83766d;line-height:1.35}
+.health-dashboard-item.muted-item{opacity:.68}
+.blood-glucose-card{scroll-margin-top:88px}
+.bg-latest{display:flex;flex-direction:column;gap:5px;margin:2px 0 18px;padding:16px;border:1px solid rgba(94,74,60,.13);border-radius:18px;background:rgba(255,255,255,.56)}
+.bg-latest span{color:#776a62;font-size:.78rem}
+.bg-latest strong{font-size:1.35rem;letter-spacing:.01em}
+.bg-latest strong small{font-size:.68rem;color:#776a62;font-weight:700}
+.bg-latest strong em{font-size:.78rem;color:#6f7652;font-style:normal}
+.bg-history-wrap{margin-top:24px;padding-top:18px;border-top:1px solid rgba(94,74,60,.12)}
+.bg-table th,.bg-table td{text-align:center}
+.bg-table td:first-child{text-align:left;white-space:nowrap}
+.bg-table td small{color:#83766d}
+#bgSaveMessage[data-type="success"]{color:#30714a}
+#bgSaveMessage[data-type="error"]{color:#a23f42}
+@media(max-width:390px){.health-dashboard-grid{grid-template-columns:1fr}.bg-latest strong{font-size:1.18rem}}

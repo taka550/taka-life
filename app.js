@@ -4,7 +4,7 @@ const SETTINGS={heightCm:176,targetWeight:85};
 const SEED=[];
 let state=loadState(); let showAll=false; let deferredPrompt=null;
 const $=id=>document.getElementById(id);
-function loadState(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY));if(v&&Array.isArray(v.records)){return {...v,version:2,settings:{...SETTINGS,...(v.settings||{})},bloodPressureRecords:Array.isArray(v.bloodPressureRecords)?v.bloodPressureRecords:[]}}}catch(e){}return {version:2,settings:{...SETTINGS},records:SEED,bloodPressureRecords:[]}}
+function loadState(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY));if(v&&Array.isArray(v.records)){return {...v,version:2,settings:{...SETTINGS,...(v.settings||{})},bloodPressureRecords:Array.isArray(v.bloodPressureRecords)?v.bloodPressureRecords:[],bloodGlucoseRecords:Array.isArray(v.bloodGlucoseRecords)?v.bloodGlucoseRecords:[]}}}catch(e){}return {version:2,settings:{...SETTINGS},records:SEED,bloodPressureRecords:[],bloodGlucoseRecords:[]}}
 function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
 function sortRecords(){state.records.sort((a,b)=>`${a.date} ${a.time||periodOrder(a.period)}`.localeCompare(`${b.date} ${b.time||periodOrder(b.period)}`))}
 function periodOrder(p){return p==='朝'?'06:00':p==='昼'?'12:00':'20:00'}
@@ -12,9 +12,10 @@ function detectPeriod(time){const h=Number((time||'12:00').split(':')[0]);return
 function nowLocal(){const d=new Date(),pad=n=>String(n).padStart(2,'0');return {date:`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,time:`${pad(d.getHours())}:${pad(d.getMinutes())}`}}
 function setNow(){const n=nowLocal();$('dateInput').value=n.date;$('timeInput').value=n.time;$('periodInput').value='auto'}
 function setBpNow(){const n=nowLocal();$('bpDateInput').value=n.date;$('bpTimeInput').value=n.time}
+function setBgNow(){const n=nowLocal();$('bgDateInput').value=n.date;$('bgTimeInput').value=n.time}
 function fmt(n,d=1){return Number(n).toFixed(d)}
 function latest(){sortRecords();return state.records.at(-1)}
-function render(){sortRecords();renderGreeting();renderDashboard();renderSummary();renderHistory();renderChart();renderBloodPressure();renderMio()}
+function render(){sortRecords();renderGreeting();renderDashboard();renderSummary();renderHistory();renderChart();renderBloodPressure();renderBloodGlucose();renderHealthDashboard();renderMio()}
 function renderGreeting(){const h=new Date().getHours();let en='GOOD EVENING',ja='おかえり、タカ。',msg='今日も一日、お疲れさま。';if(h<11){en='GOOD MORNING';ja='おはよう、タカ。';msg='今日を、少し豊かに。'}else if(h<17){en='GOOD AFTERNOON';ja='こんにちは、タカ。';msg='ひと息ついて、午後もゆっくりいこう。'}$('timeGreeting').textContent=en;$('welcomeTitle').textContent=ja;$('welcomeMessage').textContent=msg}
 function renderDashboard(){const recs=state.records,cur=latest();if(!cur)return;const first=recs[0],prev=recs.at(-2)||cur;const bmi=cur.weight/((state.settings.heightCm/100)**2);const remaining=Math.max(0,cur.weight-state.settings.targetWeight);const total=first.weight-state.settings.targetWeight;const rate=total>0?Math.max(0,Math.min(100,(first.weight-cur.weight)/total*100)):100;
 $('currentWeight').textContent=fmt(cur.weight);$('currentMeta').textContent=`${cur.date.replaceAll('-','/')} ${cur.period}${cur.time?' '+cur.time:''}`;$('diffPrev').textContent=`${cur.weight-prev.weight>=0?'+':''}${fmt(cur.weight-prev.weight)} kg`;$('bmi').textContent=fmt(bmi);$('toGoal').textContent=`${fmt(remaining)} kg`;$('diffFirst').textContent=`${cur.weight-first.weight>=0?'+':''}${fmt(cur.weight-first.weight)} kg`;$('goalRate').textContent=`${Math.round(rate)}%`;document.querySelector('.goal-ring').style.setProperty('--rate',`${rate}%`);$('goalMessage').textContent=cur.weight<=state.settings.targetWeight?'🎉 目標体重に到達中！':`目標まであと ${fmt(remaining)}kg。焦らず積み重ねやで。`}
@@ -38,6 +39,46 @@ function renderBloodPressure(){
   const cur=records.at(-1);
   latestEl.innerHTML=`<span>最新記録　${cur.date.replaceAll('-','/')} ${cur.time}</span><strong>${cur.systolic} / ${cur.diastolic} <small>mmHg</small>　${cur.pulse} <small>回/分</small></strong>`;
   body.innerHTML=[...records].reverse().slice(0,5).map(r=>`<tr><td>${r.date.slice(5).replace('-','/')}<br><small>${r.time}</small></td><td><strong>${r.systolic} / ${r.diastolic}</strong></td><td>${r.pulse}</td></tr>`).join('');
+}
+
+function sortBloodGlucoseRecords(){
+  if(!Array.isArray(state.bloodGlucoseRecords))state.bloodGlucoseRecords=[];
+  state.bloodGlucoseRecords.sort((a,b)=>`${a.date} ${a.time||'00:00'}`.localeCompare(`${b.date} ${b.time||'00:00'}`));
+}
+function renderBloodGlucose(){
+  const latestEl=$('bgLatest'),body=$('bgHistoryBody');
+  if(!latestEl||!body)return;
+  sortBloodGlucoseRecords();
+  const records=state.bloodGlucoseRecords;
+  if(!records.length){
+    latestEl.innerHTML='<span>最新記録</span><strong>まだ記録がありません</strong>';
+    body.innerHTML='<tr><td colspan="3">まだ記録がありません</td></tr>';
+    return;
+  }
+  const cur=records.at(-1);
+  latestEl.innerHTML=`<span>最新記録　${cur.date.replaceAll('-','/')} ${cur.time}</span><strong>${cur.value} <small>mg/dL</small>　<em>${cur.timing}</em></strong>`;
+  body.innerHTML=[...records].reverse().slice(0,5).map(r=>`<tr><td>${r.date.slice(5).replace('-','/')}<br><small>${r.time}</small></td><td><strong>${r.value}</strong></td><td>${r.timing}</td></tr>`).join('');
+}
+function renderHealthDashboard(){
+  const weight=latest();
+  sortBloodPressureRecords();
+  sortBloodGlucoseRecords();
+  const bp=state.bloodPressureRecords.at(-1);
+  const bg=state.bloodGlucoseRecords.at(-1);
+  if($('healthWeight')){
+    $('healthWeight').textContent=weight?`${fmt(weight.weight)} kg`:'--';
+    $('healthWeightMeta').textContent=weight?`${weight.date.replaceAll('-','/')} ${weight.period}${weight.time?' '+weight.time:''}`:'まだ記録がありません';
+  }
+  if($('healthBloodPressure')){
+    $('healthBloodPressure').textContent=bp?`${bp.systolic} / ${bp.diastolic}`:'-- / --';
+    $('healthBloodPressureMeta').textContent=bp?`${bp.date.replaceAll('-','/')} ${bp.time} mmHg`:'まだ記録がありません';
+    $('healthPulse').textContent=bp?`${bp.pulse} 回/分`:'--';
+    $('healthPulseMeta').textContent=bp?`${bp.date.replaceAll('-','/')} ${bp.time}`:'血圧と一緒に表示';
+  }
+  if($('healthBloodGlucose')){
+    $('healthBloodGlucose').textContent=bg?`${bg.value} mg/dL`:'--';
+    $('healthBloodGlucoseMeta').textContent=bg?`${bg.date.replaceAll('-','/')} ${bg.time}・${bg.timing}`:'まだ記録がありません';
+  }
 }
 
 function groupByDate(){const m=new Map();for(const r of state.records){if(!m.has(r.date))m.set(r.date,{date:r.date,朝:null,昼:null,夜:null});m.get(r.date)[r.period]=r.weight}return [...m.values()].sort((a,b)=>b.date.localeCompare(a.date))}
@@ -160,13 +201,33 @@ $('bloodPressureForm')?.addEventListener('submit',e=>{
   message.textContent=existing?`${date} ${time}の血圧を上書きしたで。`:`${date} ${time}に血圧を記録したで。`;
   renderBloodPressure();
 });
+$('bloodGlucoseForm')?.addEventListener('submit',e=>{
+  e.preventDefault();
+  const value=Number($('bloodGlucoseInput').value);
+  const timing=$('bloodGlucoseTimingInput').value;
+  const date=$('bgDateInput').value;
+  const time=$('bgTimeInput').value;
+  const memo=$('bgMemoInput').value.trim();
+  const message=$('bgSaveMessage');
+  if(!date||!time||!Number.isFinite(value))return;
+  if(!Array.isArray(state.bloodGlucoseRecords))state.bloodGlucoseRecords=[];
+  const existing=state.bloodGlucoseRecords.find(r=>r.date===date&&r.time===time);
+  const record={id:existing?.id||Date.now(),date,time,value,timing,memo,createdAt:`${date}T${time}:00`};
+  if(existing)Object.assign(existing,record);else state.bloodGlucoseRecords.push(record);
+  saveState();
+  $('bloodGlucoseInput').value='';$('bgMemoInput').value='';
+  message.dataset.type='success';
+  message.textContent=existing?`${date} ${time}の血糖値を上書きしたで。`:`${date} ${time}に血糖値を記録したで。`;
+  renderBloodGlucose();renderHealthDashboard();
+});
+$('bgNowBtn')?.addEventListener('click',setBgNow);
 $('bpNowBtn')?.addEventListener('click',setBpNow);
 
 $('nowBtn').addEventListener('click',setNow);$('showAllBtn').addEventListener('click',()=>{showAll=!showAll;renderHistory()});$('rangeSelect').addEventListener('change',renderChart);window.addEventListener('resize',renderChart);
 function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),500)}
 $('exportJsonBtn').addEventListener('click',()=>download(`taka-life-backup-${nowLocal().date}.json`,JSON.stringify(state,null,2),'application/json'));
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
-$('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:2,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records,bloodPressureRecords:Array.isArray(imported.bloodPressureRecords)?imported.bloodPressureRecords:[]};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state={...state,version:2,bloodPressureRecords:Array.isArray(state.bloodPressureRecords)?state.bloodPressureRecords:[]};state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
+$('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:2,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records,bloodPressureRecords:Array.isArray(imported.bloodPressureRecords)?imported.bloodPressureRecords:[],bloodGlucoseRecords:Array.isArray(imported.bloodGlucoseRecords)?imported.bloodGlucoseRecords:[]};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state={...state,version:2,bloodPressureRecords:Array.isArray(state.bloodPressureRecords)?state.bloodPressureRecords:[],bloodGlucoseRecords:Array.isArray(state.bloodGlucoseRecords)?state.bloodGlucoseRecords:[]};state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
 // ===== Ver.2.8.0 AI Mio Service =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
