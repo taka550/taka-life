@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Taka-Life" />
-  <link rel="manifest" href="manifest.webmanifest?v=2.8.1" />
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.8.1" />
-  <link rel="stylesheet" href="styles.css?v=2.8.1" />
+  <link rel="manifest" href="manifest.webmanifest?v=2.8.2" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.8.2" />
+  <link rel="stylesheet" href="styles.css?v=2.8.2" />
   <title>Taka-Life｜Rich Life with Mio</title>
 </head>
 <body id="top">
@@ -139,46 +139,33 @@
       </section>
     </section>
 
-    <section class="hero card balance-card">
-      <div class="balance-copy">
-        <p class="eyebrow">TODAY'S BALANCE</p>
-        <p class="label">現在体重</p>
+    <section class="card latest-records-card" aria-labelledby="latestRecordsTitle">
+      <div class="latest-records-heading">
+        <p class="eyebrow">LATEST RECORDS</p>
+        <h2 id="latestRecordsTitle">最新の健康記録</h2>
+      </div>
+
+      <div class="latest-weight-block">
+        <p class="latest-label">体重</p>
         <div class="weight-display"><span id="currentWeight">--</span><small>kg</small></div>
-        <p id="currentMeta" class="muted">記録を読み込み中…</p>
-        <p id="goalMessage" class="goal-message"></p>
+        <p id="currentMeta" class="latest-meta">まだ記録がありません</p>
       </div>
-      <div class="goal-ring" aria-label="目標達成率">
-        <span id="goalRate">0%</span>
-        <small>GOAL</small>
-      </div>
-    </section>
 
-    <section class="kpi-grid" aria-label="健康指標">
-      <article class="card kpi"><span>前回比</span><strong id="diffPrev">--</strong></article>
-      <article class="card kpi"><span>BMI</span><strong id="bmi">--</strong></article>
-      <article class="card kpi"><span>目標まで</span><strong id="toGoal">--</strong></article>
-      <article class="card kpi"><span>初回比</span><strong id="diffFirst">--</strong></article>
-    </section>
-
-    <section class="card health-dashboard" id="healthDashboard" aria-labelledby="healthDashboardTitle">
-      <div class="section-heading">
-        <div><p class="eyebrow">HEALTH DASHBOARD</p><h2 id="healthDashboardTitle">最新の健康記録</h2></div>
-      </div>
-      <div class="health-dashboard-grid">
-        <article class="health-dashboard-item">
-          <span>体重</span><strong id="healthWeight">--</strong><small id="healthWeightMeta">まだ記録がありません</small>
+      <div class="latest-records-grid">
+        <article class="latest-record-item">
+          <span>血圧・朝</span>
+          <strong id="latestBpMorning">-- / --</strong>
+          <small id="latestBpMorningMeta">まだ記録がありません</small>
         </article>
-        <article class="health-dashboard-item">
-          <span>血圧</span><strong id="healthBloodPressure">-- / --</strong><small id="healthBloodPressureMeta">まだ記録がありません</small>
+        <article class="latest-record-item">
+          <span>血圧・夜</span>
+          <strong id="latestBpNight">-- / --</strong>
+          <small id="latestBpNightMeta">まだ記録がありません</small>
         </article>
-        <article class="health-dashboard-item">
-          <span>脈拍</span><strong id="healthPulse">--</strong><small id="healthPulseMeta">血圧と一緒に表示</small>
-        </article>
-        <article class="health-dashboard-item">
-          <span>血糖値</span><strong id="healthBloodGlucose">--</strong><small id="healthBloodGlucoseMeta">まだ記録がありません</small>
-        </article>
-        <article class="health-dashboard-item muted-item">
-          <span>HbA1c</span><strong>--</strong><small>次のアップデートで追加予定</small>
+        <article class="latest-record-item latest-hba1c-item">
+          <span>HbA1c</span>
+          <strong id="latestHba1c">--</strong>
+          <small id="latestHba1cMeta">まだ記録がありません</small>
         </article>
       </div>
     </section>
@@ -309,6 +296,25 @@
           </table>
         </div>
       </div>
+
+      <div class="hba1c-record-wrap" id="hba1cSection">
+        <div class="section-heading compact-heading">
+          <div><p class="eyebrow">HBA1C</p><h3>HbA1cを記録する</h3></div>
+          <button id="hba1cTodayBtn" class="ghost" type="button">今日</button>
+        </div>
+        <div class="hba1c-latest" id="hba1cLatest" aria-live="polite">
+          <span>最新記録</span><strong>まだ記録がありません</strong>
+        </div>
+        <form id="hba1cForm">
+          <label>HbA1c
+            <span class="unit-input"><input id="hba1cInput" inputmode="decimal" type="number" min="3" max="20" step="0.1" placeholder="7.0" required /><small>%</small></span>
+          </label>
+          <label>測定日<input id="hba1cDateInput" type="date" required /></label>
+          <label>メモ（任意）<textarea id="hba1cMemoInput" rows="2" placeholder="診察時のメモなど"></textarea></label>
+          <button class="primary" type="submit">HbA1cを記録する</button>
+        </form>
+        <p id="hba1cSaveMessage" class="message" role="status"></p>
+      </div>
     </section>
 
     <section class="card chart-card">
@@ -351,7 +357,7 @@
         </div>
         <button id="checkUpdateBtn" class="ghost" type="button">更新を確認</button>
       </div>
-      <p class="version">Taka-Life Ver.2.8.1 · Health Dashboard</p>
+      <p class="version">Taka-Life Ver.2.8.2 · Latest Records</p>
     </section>
   </main>
 
@@ -362,6 +368,6 @@
     <a href="#historySection" data-scroll="history"><span>▤</span><small>履歴</small></a>
   </nav>
 
-  <script src="app.js?v=2.8.1"></script>
+  <script src="app.js?v=2.8.2"></script>
 </body>
 </html>

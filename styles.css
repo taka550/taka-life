@@ -695,3 +695,22 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
 #bgSaveMessage[data-type="success"]{color:#30714a}
 #bgSaveMessage[data-type="error"]{color:#a23f42}
 @media(max-width:390px){.health-dashboard-grid{grid-template-columns:1fr}.bg-latest strong{font-size:1.18rem}}
+
+
+/* Ver.2.8.2 — Latest Records and HbA1c */
+.latest-records-card{background:linear-gradient(145deg,#fffdfa,#f7efe2);border-color:rgba(183,154,91,.25);padding:22px}
+.latest-records-heading{margin-bottom:18px}.latest-records-heading h2{margin:3px 0 0;font-family:Georgia,"Yu Mincho","Hiragino Mincho ProN",serif;font-size:22px;color:var(--coffee)}
+.latest-weight-block{padding:2px 2px 20px;border-bottom:1px solid rgba(92,69,51,.11)}
+.latest-label{margin:0 0 5px;color:var(--muted);font-size:12px;font-weight:750}
+.latest-meta{margin:9px 0 0;color:var(--muted);font-size:12px;font-weight:650}
+.latest-records-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:16px}
+.latest-record-item{display:flex;flex-direction:column;gap:6px;min-height:105px;padding:15px;border:1px solid rgba(94,74,60,.12);border-radius:17px;background:rgba(255,255,255,.52)}
+.latest-record-item span{font-size:.74rem;font-weight:850;letter-spacing:.05em;color:#776a62}
+.latest-record-item strong{font-family:Georgia,"Times New Roman",serif;font-size:1.38rem;color:#2f2722;line-height:1.1}
+.latest-record-item small{margin-top:auto;color:#83766d;font-size:.7rem;line-height:1.4}
+.latest-hba1c-item{grid-column:1/-1}
+.hba1c-record-wrap{margin-top:25px;padding-top:20px;border-top:1px solid rgba(94,74,60,.12)}
+.hba1c-latest{display:flex;flex-direction:column;gap:5px;margin:2px 0 18px;padding:16px;border:1px solid rgba(94,74,60,.13);border-radius:18px;background:rgba(255,255,255,.56)}
+.hba1c-latest span{color:#776a62;font-size:.78rem}.hba1c-latest strong{font-size:1.35rem}.hba1c-latest strong small{font-size:.68rem;color:#776a62}
+#hba1cSaveMessage[data-type="success"]{color:#30714a}#hba1cSaveMessage[data-type="error"]{color:#a23f42}
+@media(max-width:390px){.latest-records-card{padding:19px 17px}.latest-records-grid{grid-template-columns:1fr}.latest-hba1c-item{grid-column:auto}.latest-record-item{min-height:96px}.latest-record-item strong{font-size:1.28rem}}
