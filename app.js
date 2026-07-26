@@ -112,14 +112,89 @@ function renderMio(){
 }
 $('replayTheaterBtn')?.addEventListener('click',playTheater);
 $('skipTheaterBtn')?.addEventListener('click',showAllTheater);
-$('weightForm').addEventListener('submit',e=>{e.preventDefault();const weight=Number($('weightInput').value),date=$('dateInput').value,time=$('timeInput').value,period=$('periodInput').value==='auto'?detectPeriod(time):$('periodInput').value,memo=$('memoInput').value.trim();if(!date||!time||!Number.isFinite(weight)){return}const existing=state.records.find(r=>r.date===date&&r.period===period);if(existing){Object.assign(existing,{time,weight,memo,createdAt:`${date}T${time}:00`})}else{state.records.push({id:Date.now(),date,time,period,weight,memo,createdAt:`${date}T${time}:00`})}saveState();$('weightInput').value='';$('memoInput').value='';$('saveMessage').textContent=existing?`${date} ${period}の記録を上書きしたで。`:`${date} ${period}に記録したで。`;render()});
+function buildWeightRecordTheaterRequest(record,previousRecord,wasUpdate){
+  const target=Number(state.settings.targetWeight);
+  const differenceToTarget=Number(record.weight)-target;
+  const previousDifference=previousRecord?Number((Number(record.weight)-Number(previousRecord.weight)).toFixed(1)):null;
+  const comparison=previousDifference===null
+    ?'今回が比較できる最初の記録'
+    :previousDifference===0
+      ?'前の記録と同じ体重'
+      :`前の記録より${previousDifference>0?'+':''}${previousDifference.toFixed(1)}kg`;
+  const goal=differenceToTarget<=0
+    ?`目標${target.toFixed(1)}kgに到達中`
+    :`目標${target.toFixed(1)}kgまであと${differenceToTarget.toFixed(1)}kg`;
+  return `体重を${wasUpdate?'更新':'記録'}したで。今回の体重記録を主役にして、いつもの自然なミオ劇場を作って。
+`+
+    `記録：${record.date} ${record.period} ${record.time}、${Number(record.weight).toFixed(1)}kg。
+`+
+    `比較：${comparison}。${goal}。
+`+
+    `今日のひとこと：${record.memo||'なし'}。
+`+
+    `体重の数字を責めたり大げさに評価したりせず、記録できたことも含めて、エンジェルから始まる一つの話題の掛け合いにして。`;
+}
+function findPreviousRecord(recordId){
+  sortRecords();
+  const index=state.records.findIndex(record=>record.id===recordId);
+  return index>0?state.records[index-1]:null;
+}
+$('weightForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const form=e.currentTarget;
+  const submitBtn=form.querySelector('button[type="submit"]');
+  const weight=Number($('weightInput').value),date=$('dateInput').value,time=$('timeInput').value;
+  const period=$('periodInput').value==='auto'?detectPeriod(time):$('periodInput').value;
+  const memo=$('memoInput').value.trim();
+  if(!date||!time||!Number.isFinite(weight))return;
+
+  const existing=state.records.find(record=>record.date===date&&record.period===period);
+  const record=existing||{id:Date.now()};
+  Object.assign(record,{date,time,period,weight,memo,createdAt:`${date}T${time}:00`});
+  if(!existing)state.records.push(record);
+
+  saveState();
+  $('weightInput').value='';
+  $('memoInput').value='';
+  const savedMessage=existing?`${date} ${period}の記録を上書きしたで。`:`${date} ${period}に記録したで。`;
+  $('saveMessage').textContent=`${savedMessage} ミオ劇場を準備中…`;
+  render();
+
+  try{
+    if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='ミオ劇場を準備中…'}
+    if(!getGeminiKey()){
+      $('saveMessage').textContent=`${savedMessage} APIキーが未設定なので、今回は情報更新だけしました。`;
+      return;
+    }
+    const usage=loadGeminiUsage();
+    if(usage.count>=GEMINI_DAILY_LIMIT_ESTIMATE){
+      $('saveMessage').textContent=`${savedMessage} Geminiの利用目安上限のため、今回は情報更新だけしました。`;
+      return;
+    }
+
+    const previousRecord=findPreviousRecord(record.id);
+    const request=buildWeightRecordTheaterRequest(record,previousRecord,Boolean(existing));
+    const result=await callGeminiForMio(request);
+    saveMioMemory(request,result);
+    applyAiMioTheater(result);
+    $('saveMessage').textContent=`${savedMessage} ミオ劇場も更新したで。`;
+    updateMioApiUi();
+  }catch(err){
+    const quota=err?.status===429||loadGeminiUsage().count>=GEMINI_DAILY_LIMIT_ESTIMATE;
+    $('saveMessage').textContent=quota
+      ?`${savedMessage} Geminiの利用上限にかかったため、今回は情報更新だけしました。`
+      :`${savedMessage} ミオ劇場は作れなかったため、今回は情報更新だけしました。`;
+  }finally{
+    if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='記録して、ミオ劇場へ'}
+  }
+});
 $('nowBtn').addEventListener('click',setNow);$('showAllBtn').addEventListener('click',()=>{showAll=!showAll;renderHistory()});$('rangeSelect').addEventListener('change',renderChart);window.addEventListener('resize',renderChart);
 function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),500)}
 $('exportJsonBtn').addEventListener('click',()=>download(`taka-weight-backup-${nowLocal().date}.json`,JSON.stringify(state,null,2),'application/json'));
 $('exportCsvBtn').addEventListener('click',()=>{sortRecords();const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;const rows=[['No.','日付','時刻','時間帯','体重(kg)','メモ'],...state.records.map((r,i)=>[i+1,r.date.replaceAll('-','/'),r.time,r.period,r.weight,r.memo])];download(`管理台帳1_${nowLocal().date}.csv`,`\ufeff${rows.map(row=>row.map(esc).join(',')).join('\r\n')}`,'text/csv;charset=utf-8')});
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const text=await file.text();if(file.name.toLowerCase().endsWith('.json')){const imported=JSON.parse(text);if(!Array.isArray(imported.records))throw new Error('recordsなし');state={version:1,settings:{...SETTINGS,...(imported.settings||{})},records:imported.records};}else{const lines=text.replace(/^\ufeff/,'').trim().split(/\r?\n/);const parse=line=>{const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++}else if(c==='"')q=!q;else if(c===','&&!q){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};const rows=lines.slice(1).map(parse);state.records=rows.filter(r=>r[1]&&r[4]).map((r,i)=>({id:Date.now()+i,date:r[1].replaceAll('/','-'),time:r[2]||'',period:r[3]||detectPeriod(r[2]),weight:Number(r[4]),memo:r[5]||'',createdAt:`${r[1].replaceAll('/','-')}T${r[2]||'12:00'}:00`}))}saveState();render();$('saveMessage').textContent='バックアップを読み込んだで。'}catch(err){alert('読み込みに失敗しました。JSONまたはこのアプリのCSVを選んでください。')}e.target.value=''})
 
-// ===== Ver.2.7.0 AI Mio Service =====
+// ===== Ver.2.7.2 AI Mio Service =====
 const GEMINI_KEY_STORAGE='takaLife.geminiApiKey.v1';
 const GEMINI_MODEL_CACHE='takaLife.geminiModel.v4';
 const MIO_MEMORY_STORAGE='takaLife.mioMemory.v2';
@@ -673,7 +748,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.7.0';
+const APP_VERSION='2.7.2';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
