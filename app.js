@@ -243,8 +243,42 @@ function applyTheaterTimeTheme(){
   if(chip)chip.textContent=label;
 }
 
+function getSavedAiTheater(){
+  try{
+    const data=JSON.parse(localStorage.getItem('lastAiTheater')||'null');
+    return data&&typeof data==='object'?data:null;
+  }catch(e){return null}
+}
+function applySavedAiTheater(data){
+  if(!data)return false;
+  const ids=['angelText1','devilText1','angelText2','devilText2','angelText3','devilText3','finaleText'];
+  let applied=false;
+  ids.forEach(id=>{
+    const el=$(id);
+    if(el&&typeof data[id]==='string'){
+      el.textContent=data[id];
+      applied=true;
+    }
+  });
+  return applied;
+}
+function saveCurrentTheater(){
+  const ids=['angelText1','devilText1','angelText2','devilText2','angelText3','devilText3','finaleText'];
+  const obj={savedAt:new Date().toISOString()};
+  ids.forEach(id=>{const e=$(id);if(e)obj[id]=e.textContent;});
+  localStorage.setItem('lastAiTheater',JSON.stringify(obj));
+}
 function renderMio(){
   applyTheaterTimeTheme();
+
+  // AIで作成した前回の劇場がある場合は、起動時・再描画時ともその内容を優先する。
+  const saved=getSavedAiTheater();
+  if(applySavedAiTheater(saved)){
+    showAllTheater();
+    return;
+  }
+
+  // 保存済み劇場がない初回だけ、記録に応じた標準劇場を表示する。
   const cur=latest(),prev=state.records.at(-2);
   if(!cur){
     $('devilText1').textContent='まだ記録がないみたい。最初の一歩、待ってるで。';
@@ -262,11 +296,11 @@ function renderMio(){
   if(cur.weight<=state.settings.targetWeight){
     lines=['おっ、目標ライン到達や。祝勝会は焼肉、ケーキ、締めのラーメンで三部作にする？','三部作は長すぎます（笑）。でも、ここまで積み重ねたタカはちゃんと祝っていいですよ。','ほな焼肉だけ残して、ケーキとラーメンは友情出演にしとこか。','友情出演でも食べる気ですね。今日は好きなものを一つ、ゆっくり楽しむくらいにしましょう。','一つだけかいな。ほな、その一つを主役級の扱いで迎えたるわ。','主役級でも量は普通です（笑）。達成を喜んで、明日からまた心地よく続けましょう。'];
   }else if(diff<=-.5){
-    lines=[`前回から${Math.abs(diff).toFixed(1)}kgダウン。これはチョコパンが拍手してる数字やな。`,'チョコパンは拍手しません（笑）。でも、タカが記録を続けている成果はちゃんと出ています。','ほな拍手してる体で、一個だけ祝賀会に呼んでもええやろ。','すぐ招待しますね。今日は食べるなら一つをゆっくり味わって、数字だけで追加しない作戦です。','了解や。チョコパンには「本日は単独公演です」って伝えとくわ。','それなら平和です（笑）。下がったことを喜びつつ、今日も普段どおりでいきましょう。'];
+    lines=[`前回から${Math.abs(diff).toFixed(1)}kgダウン。ええ流れやな。`,`下がったことはうれしいですね。でも、一回の数字だけで無理に頑張りすぎず、記録を続けていることを大切にしましょう。`,'ほな今日は、数字を眺めて静かにドヤ顔するくらいにしとこか。','それくらいがちょうどいいです（笑）。普段どおり食べて、普段どおり過ごしましょう。','了解や。派手な祝賀会は次の機会に持ち越しやな。','はい。今日の変化を喜びながら、また次の記録につなげましょう。'];
   }else if(diff>=.5){
     lines=[`前回から${diff.toFixed(1)}kgアップ。体重計に今日は有休を出してもらう？`,'体重計は働いています（笑）。水分や食事のタイミングでも動くので、今日だけで決めつけなくて大丈夫です。','ほな数字は見た。でも記憶からは一旦ログアウト、これでどうや。','ログアウトはしません（笑）。記録できたことを合格にして、次の食事を普段どおりに戻しましょう。','了解。反省会の代わりに、体重計へ「また次回」とだけ言うとくわ。','それで十分です。タカ、無理な帳尻合わせはせず、次の記録まで普通に過ごしましょう。'];
   }else{
-    lines=['今日は大きな変化なし。体重計も「本日は平常運転です」やな。','体重計はアナウンスしません（笑）。でも、安定して記録を続けられているのは立派です。','ほな派手なご褒美はなしで、地味にスコーン一個だけ出演させる？','結局出演させるんですね（笑）。食べたい日なら一つを楽しむ、そうでなければ普段どおりで十分です。','了解。今日はスコーンのオーディションだけして、採用はタカに任せるわ。','採用権はタカです（笑）。変化が少ない日も、そのまま記録して終わりにしましょう。'];
+    lines=['今日は大きな変化なし。体重計も「本日は平常運転です」やな。','体重計はアナウンスしません（笑）。でも、安定して記録を続けられているのは立派です。','ほな派手なご褒美はなしで、静かに一息つくくらいにする？','それがいいですね。変化が少ない日こそ、普段どおり過ごせたことを大切にしましょう。','了解。今日は平和賞を受賞したことにしとくわ。','平和賞は大げさです（笑）。でも、穏やかに続けられるのが一番です。'];
   }
   $('devilText1').textContent=lines[0];$('angelText1').textContent=lines[1];$('devilText2').textContent=lines[2];$('angelText2').textContent=lines[3];$('devilText3').textContent=lines[4];$('angelText3').textContent=lines[5];
   $('finaleText').textContent=`最新 ${cur.weight.toFixed(1)}kg。二人とも、タカの味方。`;
@@ -822,6 +856,7 @@ function applyAiMioTheater(result){
   $('finaleText').textContent=result.finale;
   closeMioChat();
   $('mioTheater')?.scrollIntoView({behavior:'smooth',block:'start'});
+  saveCurrentTheater();
   setTimeout(playTheater,450);
 }
 function friendlyGeminiError(err,action='作成'){
@@ -883,10 +918,11 @@ async function askMio(){
     setMioAiStatus('');
     updateMioApiUi();
   }catch(err){
-    setMioAiStatus(friendlyGeminiError(err,'作成'),'error');
+    const message=friendlyGeminiError(err,'作成');
+    setMioAiStatus(`${message} 前回のAIシアターはそのまま残しています。`,'error');
   }finally{
     if(timer)clearInterval(timer);
-    if(btn){btn.disabled=false;btn.textContent='ミオ劇場をつくる'}
+    if(btn){btn.disabled=false;btn.textContent='AIシアターをつくる'}
   }
 }
 $('openMioChatBtn')?.addEventListener('click',openMioChat);
@@ -901,7 +937,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.8.4';
+const APP_VERSION='2.8.7';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
@@ -966,3 +1002,4 @@ document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')updateGeminiUsageUi();
 });
 window.addEventListener('focus',()=>updateGeminiUsageUi());
+
