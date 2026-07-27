@@ -35,9 +35,9 @@
       <div class="mio-heading">
         <div>
           <p class="eyebrow">MIO THEATER</p>
-          <h2>今日のミオ劇場</h2>
+          <h2>今日のAI劇場 <span class="ai-by-mio">AI by Mio</span></h2>
         </div>
-        <button id="replayTheaterBtn" class="theater-badge replay-badge" type="button" aria-label="ミオ劇場をもう一度再生">↻ REPLAY</button>
+        <button id="replayTheaterBtn" class="theater-badge replay-badge" type="button" aria-label="AI劇場をもう一度再生">↻ REPLAY</button>
       </div>
 
       <div class="anime-stage theater-v220 theater-v230" id="animeStage" aria-live="polite">
@@ -45,41 +45,41 @@
           <i></i><i></i><i></i><i></i><i></i><i></i>
         </div>
         <div class="theater-time-chip" id="theaterTimeChip" aria-hidden="true">NIGHT THEATER</div>
-        <div class="character-showcase" aria-label="デビルミオとエンジェルミオ">
+        <div class="character-showcase" aria-label="デビルAIとエンジェルAI">
           <div class="character-panel character-devil" id="devilCharacter">
-            <img src="mio-devil-v220.webp?v=2.8.1" alt="少し小悪魔っぽく自由なデビルミオ" />
-            <span class="character-name">デビルミオ</span>
+            <img src="mio-devil-v220.webp?v=2.8.1" alt="少し小悪魔っぽく自由なデビルAI" />
+            <span class="character-name">デビルAI</span>
           </div>
           <div class="character-panel character-angel" id="angelCharacter">
-            <img src="mio-angel-v220.webp?v=2.8.1" alt="優しく健康を応援するエンジェルミオ" />
-            <span class="character-name">エンジェルミオ</span>
+            <img src="mio-angel-v220.webp?v=2.8.1" alt="優しく健康を応援するエンジェルAI" />
+            <span class="character-name">エンジェルAI</span>
           </div>
         </div>
 
         <div class="dialogue-track" id="dialogueTrack">
           <article class="speech speech-angel" data-scene="0">
-            <div><span>エンジェルミオ</span><p id="angelText1">今日は何があったのか、まず一つ聞かせてくださいね。</p></div>
+            <div><span>エンジェルAI</span><p id="angelText1">今日は何があったのか、まず一つ聞かせてくださいね。</p></div>
             <img class="speech-avatar" src="mio-angel-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
           </article>
           <article class="speech speech-devil" data-scene="1">
             <img class="speech-avatar" src="mio-devil-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
-            <div><span>デビルミオ</span><p id="devilText1">ほな、その話にちょっとだけちゃちゃ入れよか。</p></div>
+            <div><span>デビルAI</span><p id="devilText1">ほな、その話にちょっとだけちゃちゃ入れよか。</p></div>
           </article>
           <article class="speech speech-angel" data-scene="2">
-            <div><span>エンジェルミオ</span><p id="angelText2">ちょっとだけ、で済む気がしません（笑）。</p></div>
+            <div><span>エンジェルAI</span><p id="angelText2">ちょっとだけ、で済む気がしません（笑）。</p></div>
             <img class="speech-avatar" src="mio-angel-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
           </article>
           <article class="speech speech-devil" data-scene="3">
             <img class="speech-avatar" src="mio-devil-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
-            <div><span>デビルミオ</span><p id="devilText2">ちゃちゃやない、会話のスパイスや。</p></div>
+            <div><span>デビルAI</span><p id="devilText2">ちゃちゃやない、会話のスパイスや。</p></div>
           </article>
           <article class="speech speech-angel" data-scene="4">
-            <div><span>エンジェルミオ</span><p id="angelText3">スパイスは控えめにして、今日の話をきれいに締めましょう。</p></div>
+            <div><span>エンジェルAI</span><p id="angelText3">スパイスは控えめにして、今日の話をきれいに締めましょう。</p></div>
             <img class="speech-avatar" src="mio-angel-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
           </article>
           <article class="speech speech-devil" data-scene="5">
             <img class="speech-avatar" src="mio-devil-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
-            <div><span>デビルミオ</span><p id="devilText3">しゃあないな。最後にひと振りだけやで。</p></div>
+            <div><span>デビルAI</span><p id="devilText3">しゃあないな。最後にひと振りだけやで。</p></div>
           </article>
         </div>
 
@@ -121,7 +121,7 @@
             placeholder="例：今日は仕事でちょっと疲れた。でもスタバでゆっくりできた。"></textarea>
           <div class="mio-context-preview" id="mioContextPreview"></div>
           <p class="mio-memory-note" id="mioMemoryNote">最近の相談は、このiPhone内だけでミオの会話メモとして使います。</p>
-          <button id="askMioBtn" class="primary mio-ask-button" type="button">ミオ劇場をつくる</button>
+          <button id="askMioBtn" class="primary mio-ask-button" type="button">AI劇場をつくる</button>
           <div class="gemini-usage-card" aria-label="Gemini利用回数の目安">
             <div class="gemini-usage-head">
               <span>現在のGemini利用</span>
@@ -230,7 +230,7 @@
           </select>
         </label>
         <label>今日のひとこと（任意）<textarea id="memoInput" rows="2" placeholder="体調、食事、うれしかったことなど"></textarea></label>
-        <button class="primary" type="submit">記録して、ミオ劇場へ</button>
+        <button class="primary" type="submit">記録して、AI劇場へ</button>
       </form>
       <p id="saveMessage" class="message" role="status"></p>
     </section>

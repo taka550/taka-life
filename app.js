@@ -440,7 +440,7 @@ const MIO_PROFILE={
   health:'2型糖尿病。マンジャロを土曜夜に使用し、翌日は食欲が落ちやすい。健康第一',
   lifestyle:'自転車通勤。朝食は基本軽めまたは食べない。夜は米を控えめにする',
   interests:'スタバでの読書、ほっこり系小説、料理、キングダムが好き',
-  conversation:'説教や一般論より、具体的で自然な会話を好む。デビルミオの軽い関西弁と笑えるツッコミが好き'
+  conversation:'説教や一般論より、具体的で自然な会話を好む。デビルAIの軽い関西弁と笑えるツッコミが好き'
 };
 const MIO_TAG_RULES={
   health:['マンジャロ','食欲','糖尿病','血糖','薬','体調','頭痛','ふらつ','吐き気','下痢','水分','体重','kg','減量','ダイエット','睡眠','疲れ','休む','休憩'],
@@ -451,7 +451,7 @@ const MIO_TAG_RULES={
   food:['食べ','ごはん','料理','昼食','夕食','朝食','寿司','アジフライ','パン','ケーキ','お酒','ハイボール'],
   exercise:['自転車','散歩','運動','歩く','通勤'],
   mood:['気分','楽しい','寂しい','不安','しんどい','嬉しい','眠い','疲れ','焦る','落ち込'],
-  app:['アプリ','Taka-Life','ミオ劇場','Gemini','ジェミニ','API','GitHub','Cloudflare']
+  app:['アプリ','Taka-Life','AI劇場 <span class="ai-by-mio">AI by Mio</span>','Gemini','ジェミニ','API','GitHub','Cloudflare']
 };
 function normalizeMioText(value){
   return String(value||'').normalize('NFKC').toLowerCase();
@@ -619,7 +619,7 @@ function buildMioContext(userText){
   };
 }
 function mioTheaterPrompt(context){
-  return `あなたはTaka-Life専属のコメディ脚本家です。タカ向けの30秒ほどの「ミオ劇場」を1本作ってください。
+  return `あなたはTaka-Life専属のコメディ脚本家です。タカ向けの30秒ほどの「AI劇場」を1本作ってください。
 
 【会話の軸】
 - 固定テーマ：${context.mainTheme.label}
@@ -629,14 +629,14 @@ function mioTheaterPrompt(context){
 - 固定テーマから最後まで離れないでください。連想で別テーマへ移ることも禁止です。
 
 【役割】
-- エンジェルミオ：最初に話す司会・ツッコミ役。優しいが、説教や一般論にしない。
-- デビルミオ：エンジェルの話へ横から乱入する誘惑・ボケ役。軽い関西弁。新しい話題を始めない。
+- エンジェルAI：最初に話す司会・ツッコミ役。優しいが、説教や一般論にしない。
+- デビルAI：エンジェルの話へ横から乱入する誘惑・ボケ役。軽い関西弁。新しい話題を始めない。
 - 二人ともタカの味方です。危険な行動や薬の変更は勧めません。
 - 二人はタカと昔から付き合いのある親友です。
 - 呼び方は必ず「タカ」。絶対に「タカさん」「あなた」「ユーザー」と呼ばないでください。
 - 初対面のような敬語や堅苦しい口調は禁止です。
-- エンジェルミオは少し年上のお姉さんのように自然で距離が近い話し方をします。
-- デビルミオは昔からの悪友として遠慮なくタメ口で話します。
+- エンジェルAIは少し年上のお姉さんのように自然で距離が近い話し方をします。
+- デビルAIは昔からの悪友として遠慮なくタメ口で話します。
 - スタバ、読書、仕事など過去の思い出は共有しているものとして自然に触れて構いません。
 
 【流れ】
@@ -809,7 +809,7 @@ async function callGeminiForMio(userText,options={}){
       throw err;
     }
   }
-  throw new Error('ミオ劇場を作れませんでした。もう一度お試しください。');
+  throw new Error('AI劇場を作れませんでした。もう一度お試しください。');
 }
 function applyAiMioTheater(result){
   clearTheaterTimers();
@@ -875,8 +875,8 @@ async function askMio(){
   let seconds=0,timer=null;
   try{
     if(btn){btn.disabled=true;btn.textContent='ミオたちが考え中…'}
-    setMioAiStatus('エンジェルミオとデビルミオが脚本を相談中… 0秒');
-    timer=setInterval(()=>{seconds++;setMioAiStatus(`エンジェルミオとデビルミオが脚本を相談中… ${seconds}秒`)},1000);
+    setMioAiStatus('エンジェルAIとデビルAIが脚本を相談中… 0秒');
+    timer=setInterval(()=>{seconds++;setMioAiStatus(`エンジェルAIとデビルAIが脚本を相談中… ${seconds}秒`)},1000);
     const result=await callGeminiForMio(question);
     saveMioMemory(question,result);
     applyAiMioTheater(result);
@@ -886,7 +886,7 @@ async function askMio(){
     setMioAiStatus(friendlyGeminiError(err,'作成'),'error');
   }finally{
     if(timer)clearInterval(timer);
-    if(btn){btn.disabled=false;btn.textContent='ミオ劇場をつくる'}
+    if(btn){btn.disabled=false;btn.textContent='AI劇場をつくる'}
   }
 }
 $('openMioChatBtn')?.addEventListener('click',openMioChat);
