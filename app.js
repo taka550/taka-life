@@ -451,7 +451,7 @@ const MIO_TAG_RULES={
   food:['食べ','ごはん','料理','昼食','夕食','朝食','寿司','アジフライ','パン','ケーキ','お酒','ハイボール'],
   exercise:['自転車','散歩','運動','歩く','通勤'],
   mood:['気分','楽しい','寂しい','不安','しんどい','嬉しい','眠い','疲れ','焦る','落ち込'],
-  app:['アプリ','Taka-Life','AI劇場 <span class="ai-by-mio">AI by Mio</span>','Gemini','ジェミニ','API','GitHub','Cloudflare']
+  app:['アプリ','Taka-Life','ミオ劇場','Gemini','ジェミニ','API','GitHub','Cloudflare']
 };
 function normalizeMioText(value){
   return String(value||'').normalize('NFKC').toLowerCase();
@@ -619,7 +619,7 @@ function buildMioContext(userText){
   };
 }
 function mioTheaterPrompt(context){
-  return `あなたはTaka-Life専属のコメディ脚本家です。タカ向けの30秒ほどの「AI劇場」を1本作ってください。
+  return `あなたはTaka-Life専属のコメディ脚本家です。タカ向けの30秒ほどの「ミオ劇場」を1本作ってください。
 
 【会話の軸】
 - 固定テーマ：${context.mainTheme.label}
@@ -809,7 +809,7 @@ async function callGeminiForMio(userText,options={}){
       throw err;
     }
   }
-  throw new Error('AI劇場を作れませんでした。もう一度お試しください。');
+  throw new Error('ミオ劇場を作れませんでした。もう一度お試しください。');
 }
 function applyAiMioTheater(result){
   clearTheaterTimers();
@@ -886,7 +886,7 @@ async function askMio(){
     setMioAiStatus(friendlyGeminiError(err,'作成'),'error');
   }finally{
     if(timer)clearInterval(timer);
-    if(btn){btn.disabled=false;btn.textContent='AI劇場をつくる'}
+    if(btn){btn.disabled=false;btn.textContent='ミオ劇場をつくる'}
   }
 }
 $('openMioChatBtn')?.addEventListener('click',openMioChat);

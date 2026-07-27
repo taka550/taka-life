@@ -34,10 +34,10 @@
     <section class="card mio-card anime-theater" id="mioTheater">
       <div class="mio-heading">
         <div>
-          <p class="eyebrow">MIO THEATER</p>
-          <h2>今日のAI劇場 <span class="ai-by-mio">AI by Mio</span></h2>
+          <p class="eyebrow">AI THEATER</p>
+          <h2>今日のミオ劇場</h2>
         </div>
-        <button id="replayTheaterBtn" class="theater-badge replay-badge" type="button" aria-label="AI劇場をもう一度再生">↻ REPLAY</button>
+        <button id="replayTheaterBtn" class="theater-badge replay-badge" type="button" aria-label="ミオ劇場をもう一度再生">↻ REPLAY</button>
       </div>
 
       <div class="anime-stage theater-v220 theater-v230" id="animeStage" aria-live="polite">
@@ -89,7 +89,7 @@
       </div>
       <div class="theater-controls">
         <button id="skipTheaterBtn" class="theater-action secondary-theater" type="button">まとめて表示</button>
-        <button id="openMioChatBtn" class="theater-action ai-theater-action" type="button">✦ ミオに相談</button>
+        <button id="openMioChatBtn" class="theater-action ai-theater-action" type="button">✦ AIに相談</button>
       </div>
 
       <section class="mio-ai-panel" id="mioAiPanel" hidden aria-labelledby="mioAiTitle">
@@ -121,7 +121,7 @@
             placeholder="例：今日は仕事でちょっと疲れた。でもスタバでゆっくりできた。"></textarea>
           <div class="mio-context-preview" id="mioContextPreview"></div>
           <p class="mio-memory-note" id="mioMemoryNote">最近の相談は、このiPhone内だけでミオの会話メモとして使います。</p>
-          <button id="askMioBtn" class="primary mio-ask-button" type="button">AI劇場をつくる</button>
+          <button id="askMioBtn" class="primary mio-ask-button" type="button">ミオ劇場をつくる</button>
           <div class="gemini-usage-card" aria-label="Gemini利用回数の目安">
             <div class="gemini-usage-head">
               <span>現在のGemini利用</span>
@@ -194,7 +194,7 @@
       </div>
 
       <div class="health-comment-panel" aria-live="polite">
-        <div class="health-comment-title"><span aria-hidden="true">✦</span><b>ミオからのひとこと</b></div>
+        <div class="health-comment-title"><span aria-hidden="true">✦</span><b>AIからのひとこと</b></div>
         <p id="healthOverallComment">体重・血圧・HbA1cを記録すると、ここに全体のコメントが表示されます。</p>
       </div>
     </section>
@@ -230,7 +230,7 @@
           </select>
         </label>
         <label>今日のひとこと（任意）<textarea id="memoInput" rows="2" placeholder="体調、食事、うれしかったことなど"></textarea></label>
-        <button class="primary" type="submit">記録して、AI劇場へ</button>
+        <button class="primary" type="submit">記録して、ミオ劇場へ</button>
       </form>
       <p id="saveMessage" class="message" role="status"></p>
     </section>
@@ -393,7 +393,7 @@
   <nav class="bottom-nav" aria-label="メインメニュー">
     <a href="#top" data-scroll="top"><span>⌂</span><small>Today</small></a>
     <a href="#recordSection" data-scroll="record"><span>＋</span><small>記録</small></a>
-    <a href="#mioTheater" data-scroll="mio"><span>✦</span><small>ミオ</small></a>
+    <a href="#mioTheater" data-scroll="mio"><span>✦</span><small>AI</small></a>
     <a href="#historySection" data-scroll="history"><span>▤</span><small>履歴</small></a>
   </nav>
 
