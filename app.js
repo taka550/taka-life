@@ -254,7 +254,9 @@ function renderMio(){
     $('devilText3').textContent='一回入れたら、うちらが勝手に劇場を始めるで。入場料はゼロや。';
     $('angelText3').textContent='勝手には始めません（笑）。タカが記録したら、二人でちゃんと応援します。';
     $('finaleText').textContent='記録した日から、物語が始まる。';
-    playTheater();
+    saveCurrentTheater();
+    saveCurrentTheater();
+  playTheater();
     return;
   }
   const diff=prev?cur.weight-prev.weight:0;
@@ -966,3 +968,19 @@ document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')updateGeminiUsageUi();
 });
 window.addEventListener('focus',()=>updateGeminiUsageUi());
+
+
+function saveCurrentTheater(){
+ const ids=['angelText1','devilText1','angelText2','devilText2','angelText3','devilText3','finaleText'];
+ const obj={};
+ ids.forEach(id=>{const e=$(id); if(e)obj[id]=e.textContent;});
+ localStorage.setItem('lastAiTheater',JSON.stringify(obj));
+}
+document.addEventListener('DOMContentLoaded',()=>{
+ try{
+  const d=JSON.parse(localStorage.getItem('lastAiTheater')||'null');
+  if(d){
+    Object.entries(d).forEach(([k,v])=>{const e=$(k); if(e)e.textContent=v;});
+  }
+ }catch(e){}
+});
