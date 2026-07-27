@@ -937,7 +937,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.8.7';
+const APP_VERSION='2.8.8';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
