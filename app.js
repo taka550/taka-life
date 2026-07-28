@@ -398,7 +398,29 @@ const GEMINI_MODEL_PREFERENCES=[
 const GEMINI_TEST_COOLDOWN_MS=30000;
 let lastGeminiTestAt=0;
 const GEMINI_USAGE_STORAGE='takaLife.geminiUsage.v1';
+const GEMINI_DIAGNOSTIC_LOG_STORAGE='takaLife.geminiDiagnosticLog.v1';
+const GEMINI_DIAGNOSTIC_LOG_LIMIT=120;
+const GEMINI_RETRY_DELAYS_MS=[2000,5000,10000];
 const GEMINI_DAILY_LIMIT_ESTIMATE=20;
+
+function writeGeminiDiagnosticLog(entry){
+  const safeEntry={at:new Date().toISOString(),...entry};
+  console.log('[Taka-Life Gemini]',safeEntry);
+  try{
+    const existing=JSON.parse(localStorage.getItem(GEMINI_DIAGNOSTIC_LOG_STORAGE)||'[]');
+    const logs=Array.isArray(existing)?existing:[];
+    logs.push(safeEntry);
+    localStorage.setItem(GEMINI_DIAGNOSTIC_LOG_STORAGE,JSON.stringify(logs.slice(-GEMINI_DIAGNOSTIC_LOG_LIMIT)));
+  }catch(e){
+    console.warn('[Taka-Life Gemini] 診断ログを保存できませんでした。',e);
+  }
+}
+function logCachedGeminiModel(){
+  const cached=localStorage.getItem(GEMINI_MODEL_CACHE);
+  writeGeminiDiagnosticLog({event:'cached-model',storageKey:GEMINI_MODEL_CACHE,value:cached||null});
+  return cached;
+}
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 
 
 function geminiQuotaDayKey(){
@@ -697,16 +719,37 @@ function fetchWithTimeout(url,options={},timeoutMs=18000){
   const timer=setTimeout(()=>controller.abort(),timeoutMs);
   return fetch(url,{...options,signal:controller.signal}).finally(()=>clearTimeout(timer));
 }
-async function geminiFetch(path,key,{method='GET',body,timeoutMs=18000}={}){
-  const response=await fetchWithTimeout(`${GEMINI_API_BASE}${path}`,{
-    method,
-    headers:{...(body?{'Content-Type':'application/json'}:{}),'x-goog-api-key':key},
-    ...(body?{body:JSON.stringify(body)}:{})
-  },timeoutMs);
-  const data=await response.json().catch(()=>({}));
+async function geminiFetch(path,key,{method='GET',body,timeoutMs=18000,logContext={}}={}){
+  const requestStartedAt=Date.now();
+  let response;
+  try{
+    response=await fetchWithTimeout(`${GEMINI_API_BASE}${path}`,{
+      method,
+      headers:{...(body?{'Content-Type':'application/json'}:{}),'x-goog-api-key':key},
+      ...(body?{body:JSON.stringify(body)}:{})
+    },timeoutMs);
+  }catch(error){
+    writeGeminiDiagnosticLog({
+      event:'network-error',path,method,durationMs:Date.now()-requestStartedAt,
+      errorName:error?.name||'Error',errorMessage:error?.message||String(error),...logContext
+    });
+    throw error;
+  }
+  const rawText=await response.text().catch(()=> '');
+  let data={};
+  if(rawText){
+    try{data=JSON.parse(rawText)}catch(e){data={rawText}}
+  }
+  writeGeminiDiagnosticLog({
+    event:'api-response',path,method,httpStatus:response.status,ok:response.ok,
+    durationMs:Date.now()-requestStartedAt,
+    geminiErrorBody:response.ok?null:(rawText||null),...logContext
+  });
   if(!response.ok){
     const err=new Error(data?.error?.message||`HTTP ${response.status}`);
     err.status=response.status;
+    err.geminiErrorBody=rawText||'';
+    err.geminiErrorData=data;
     const retryHeader=response.headers.get('retry-after');
     const retryFromMessage=String(err.message).match(/retry in\s+([\d.]+)s/i);
     err.retryAfterSeconds=retryHeader?Math.ceil(Number(retryHeader)):retryFromMessage?Math.ceil(Number(retryFromMessage[1])):null;
@@ -714,11 +757,90 @@ async function geminiFetch(path,key,{method='GET',body,timeoutMs=18000}={}){
   }
   return data;
 }
+async function listGenerateContentFlashModels(key){
+  const data=await geminiFetch('/models?pageSize=1000',key,{timeoutMs:12000,logContext:{operation:'list-models'}});
+  return (data.models||[])
+    .filter(model=>Array.isArray(model.supportedGenerationMethods)&&model.supportedGenerationMethods.includes('generateContent'))
+    .map(model=>String(model.name||'').replace(/^models\//,''))
+    .filter(name=>/gemini/i.test(name)&&/flash/i.test(name)&&!/embedding|image|imagen|veo|tts|audio|live|robotics|research/i.test(name));
+}
+function rankGeminiFallbackModels(models,currentModel){
+  return [...new Set(models)]
+    .filter(name=>name&&name!==currentModel)
+    .sort((a,b)=>{
+      const score=name=>{
+        let value=0;
+        if(!/preview|exp|experimental/i.test(name))value+=100;
+        if(/latest/i.test(name))value+=20;
+        if(/flash-lite/i.test(name))value+=10;
+        const version=name.match(/gemini-(\d+)(?:\.(\d+))?/i);
+        if(version)value+=Number(version[1])*10+Number(version[2]||0);
+        return value;
+      };
+      return score(b)-score(a)||a.localeCompare(b);
+    });
+}
+async function generateWith503Retry({model,key,body,timeoutMs,operation,onRetry}){
+  for(let attempt=0;attempt<=GEMINI_RETRY_DELAYS_MS.length;attempt++){
+    try{
+      incrementGeminiUsage();
+      writeGeminiDiagnosticLog({event:'request-attempt',operation,model,attempt:attempt+1});
+      return await geminiFetch(`/models/${encodeURIComponent(model)}:generateContent`,key,{
+        method:'POST',body,timeoutMs,
+        logContext:{operation,model,attempt:attempt+1}
+      });
+    }catch(err){
+      writeGeminiDiagnosticLog({
+        event:'request-failed',operation,model,attempt:attempt+1,
+        httpStatus:err?.status||null,errorMessage:err?.message||String(err),
+        geminiErrorBody:err?.geminiErrorBody||null
+      });
+      if(err?.status!==503||attempt>=GEMINI_RETRY_DELAYS_MS.length)throw err;
+      const waitMs=GEMINI_RETRY_DELAYS_MS[attempt];
+      writeGeminiDiagnosticLog({event:'retry-scheduled',operation,model,nextAttempt:attempt+2,waitMs,httpStatus:503});
+      onRetry?.({model,attempt:attempt+1,waitMs});
+      await sleep(waitMs);
+    }
+  }
+}
+async function generateWithModelFallback({initialModel,key,buildBody,timeoutMs,operation,onRetry}){
+  const attempted=[];
+  const tryModel=async model=>{
+    attempted.push(model);
+    writeGeminiDiagnosticLog({event:'model-selected',operation,model,fallback:attempted.length>1});
+    return generateWith503Retry({model,key,body:buildBody(model),timeoutMs,operation,onRetry});
+  };
+  try{
+    const data=await tryModel(initialModel);
+    return {data,model:initialModel};
+  }catch(primaryError){
+    if(primaryError?.status!==503)throw primaryError;
+    const available=await listGenerateContentFlashModels(key);
+    const fallbacks=rankGeminiFallbackModels(available,initialModel);
+    writeGeminiDiagnosticLog({event:'fallback-candidates',operation,currentModel:initialModel,candidates:fallbacks});
+    let lastError=primaryError;
+    for(const fallbackModel of fallbacks){
+      try{
+        onRetry?.({model:fallbackModel,attempt:0,waitMs:0,fallback:true});
+        const data=await tryModel(fallbackModel);
+        localStorage.setItem(GEMINI_MODEL_CACHE,fallbackModel);
+        writeGeminiDiagnosticLog({event:'fallback-success',operation,fromModel:initialModel,toModel:fallbackModel});
+        return {data,model:fallbackModel};
+      }catch(err){
+        lastError=err;
+        if(err?.status!==503&&isModelUnavailable(err))continue;
+        if(err?.status!==503)throw err;
+      }
+    }
+    throw lastError;
+  }
+}
 async function getAvailableGeminiModel(forceRefresh=false){
   const key=getGeminiKey();
   if(!key)throw new Error('APIキーが未設定です。');
-  if(!forceRefresh){const cached=localStorage.getItem(GEMINI_MODEL_CACHE);if(cached)return cached}
-  const data=await geminiFetch('/models?pageSize=1000',key,{timeoutMs:12000});
+  const cached=logCachedGeminiModel();
+  if(!forceRefresh&&cached)return cached;
+  const data=await geminiFetch('/models?pageSize=1000',key,{timeoutMs:12000,logContext:{operation:'select-model'}});
   const available=(data.models||[])
     .filter(m=>Array.isArray(m.supportedGenerationMethods)&&m.supportedGenerationMethods.includes('generateContent'))
     .map(m=>String(m.name||'').replace(/^models\//,''))
@@ -729,6 +851,7 @@ async function getAvailableGeminiModel(forceRefresh=false){
     ||available[0];
   if(!selected)throw new Error('このAPIキーで利用できる文章生成モデルが見つかりませんでした。');
   localStorage.setItem(GEMINI_MODEL_CACHE,selected);
+  writeGeminiDiagnosticLog({event:'model-cache-updated',storageKey:GEMINI_MODEL_CACHE,value:selected});
   return selected;
 }
 function extractCandidateText(data){
@@ -798,52 +921,32 @@ function buildGenerateBody(context,model){
   };
 }
 function isModelUnavailable(err){return err?.status===404||/no longer available|not found|not supported for generatecontent/i.test(err?.message||'')}
-async function testGeminiConnectionOnly(){
+async function testGeminiConnectionOnly(options={}){
   const key=getGeminiKey();
   if(!key)throw new Error('APIキーが未設定です。');
   let model=await getAvailableGeminiModel(true);
-  for(let attempt=0;attempt<2;attempt++){
-    try{
-      incrementGeminiUsage();
-      const data=await geminiFetch(`/models/${encodeURIComponent(model)}:generateContent`,key,{method:'POST',timeoutMs:12000,body:{contents:[{role:'user',parts:[{text:'接続確認です。「接続できました」とだけ返してください。'}]}],generationConfig:{maxOutputTokens:20,temperature:0}}});
-      if(!extractCandidateText(data))throw new Error('Geminiから返事がありませんでした。');
-      return {model,message:'接続できました'};
-    }catch(err){
-      if(isModelUnavailable(err)&&attempt===0){localStorage.removeItem(GEMINI_MODEL_CACHE);model=await getAvailableGeminiModel(true);continue}
-      throw err;
-    }
-  }
-  throw new Error('接続確認に失敗しました。');
+  const result=await generateWithModelFallback({
+    initialModel:model,key,timeoutMs:12000,operation:'connection-test',onRetry:options.onRetry,
+    buildBody:()=>({contents:[{role:'user',parts:[{text:'接続確認です。「接続できました」とだけ返してください。'}]}],generationConfig:{maxOutputTokens:20,temperature:0}})
+  });
+  if(!extractCandidateText(result.data))throw new Error('Geminiから返事がありませんでした。');
+  return {model:result.model,message:'接続できました'};
 }
 async function callGeminiForMio(userText,options={}){
   const key=getGeminiKey();
   if(!key)throw new Error('APIキーが未設定です。');
   const context=buildMioContext(userText);
   let model=await getAvailableGeminiModel(Boolean(options.forceModelRefresh));
-
-  for(let attempt=0;attempt<2;attempt++){
-    try{
-      incrementGeminiUsage();
-      const data=await geminiFetch(`/models/${encodeURIComponent(model)}:generateContent`,key,{
-        method:'POST',
-        body:buildGenerateBody(context,model),
-        timeoutMs:22000
-      });
-      const text=extractCandidateText(data);
-      const finishReason=data?.candidates?.[0]?.finishReason||'';
-      if(!text)throw new Error('ミオから返事がありませんでした。');
-      if(finishReason==='MAX_TOKENS')throw new Error('Geminiの返答が上限で途中終了しました。もう一度作成してください。');
-      return parseMioTheater(text);
-    }catch(err){
-      if(isModelUnavailable(err)&&attempt===0){
-        localStorage.removeItem(GEMINI_MODEL_CACHE);
-        model=await getAvailableGeminiModel(true);
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw new Error('ミオ劇場を作れませんでした。もう一度お試しください。');
+  const result=await generateWithModelFallback({
+    initialModel:model,key,timeoutMs:22000,operation:'ai-theater',onRetry:options.onRetry,
+    buildBody:selectedModel=>buildGenerateBody(context,selectedModel)
+  });
+  const text=extractCandidateText(result.data);
+  const finishReason=result.data?.candidates?.[0]?.finishReason||'';
+  if(!text)throw new Error('ミオから返事がありませんでした。');
+  if(finishReason==='MAX_TOKENS')throw new Error('Geminiの返答が上限で途中終了しました。もう一度作成してください。');
+  writeGeminiDiagnosticLog({event:'generation-success',operation:'ai-theater',model:result.model,httpStatus:200});
+  return parseMioTheater(text);
 }
 function applyAiMioTheater(result){
   clearTheaterTimers();
@@ -860,6 +963,7 @@ function applyAiMioTheater(result){
   setTimeout(playTheater,450);
 }
 function friendlyGeminiError(err,action='作成'){
+  if(err?.status===503)return '現在AIが混み合っています。しばらくしてからもう一度お試しください';
   if(err?.name==='AbortError')return `Geminiの返事が遅いため時間切れになりました。少し待ってからもう一度お試しください。`;
   if(err?.status===429){
     const wait=Number(err.retryAfterSeconds);
@@ -886,8 +990,8 @@ async function runGeminiTest(){
   lastGeminiTestAt=Date.now();
   try{
     if(btn){btn.disabled=true;btn.textContent='接続中…'}
-    setMioAiStatus('Geminiへ接続できるか確認しています…');
-    const result=await testGeminiConnectionOnly();
+    setMioAiStatus('AIに接続しています。少しお待ちください');
+    const result=await testGeminiConnectionOnly({onRetry:()=>setMioAiStatus('AIに接続しています。少しお待ちください')});
     localStorage.setItem(GEMINI_MODEL_CACHE,result.model);
     setMioAiStatus(`接続成功！ ${result.model} を利用できます。`,'success');
   }catch(err){
@@ -910,16 +1014,16 @@ async function askMio(){
   let seconds=0,timer=null;
   try{
     if(btn){btn.disabled=true;btn.textContent='ミオたちが考え中…'}
-    setMioAiStatus('エンジェルAIとデビルAIが脚本を相談中… 0秒');
-    timer=setInterval(()=>{seconds++;setMioAiStatus(`エンジェルAIとデビルAIが脚本を相談中… ${seconds}秒`)},1000);
-    const result=await callGeminiForMio(question);
+    setMioAiStatus('AIに接続しています。少しお待ちください');
+    timer=setInterval(()=>{seconds++},1000);
+    const result=await callGeminiForMio(question,{onRetry:()=>setMioAiStatus('AIに接続しています。少しお待ちください')});
     saveMioMemory(question,result);
     applyAiMioTheater(result);
     setMioAiStatus('');
     updateMioApiUi();
   }catch(err){
     const message=friendlyGeminiError(err,'作成');
-    setMioAiStatus(`${message} 前回のAIシアターはそのまま残しています。`,'error');
+    setMioAiStatus(err?.status===503?message:`${message} 前回のAIシアターはそのまま残しています。`,'error');
   }finally{
     if(timer)clearInterval(timer);
     if(btn){btn.disabled=false;btn.textContent='AIシアターをつくる'}
@@ -937,7 +1041,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.8.8';
+const APP_VERSION='2.8.9';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
