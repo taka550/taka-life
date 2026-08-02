@@ -17,7 +17,7 @@ function setHba1cToday(){const n=nowLocal();$('hba1cDateInput').value=n.date}
 function fmt(n,d=1){return Number(n).toFixed(d)}
 function latest(){sortRecords();return state.records.at(-1)}
 function render(){sortRecords();renderGreeting();renderLatestRecords();renderSummary();renderHistory();renderChart();renderBloodPressure();renderBloodGlucose();renderHba1c();renderMio()}
-function renderGreeting(){const h=new Date().getHours();let en='GOOD EVENING',ja='おかえり、タカ。',msg='今日も一日、お疲れさま。';if(h<11){en='GOOD MORNING';ja='おはよう、タカ。';msg='今日を、少し豊かに。'}else if(h<17){en='GOOD AFTERNOON';ja='こんにちは、タカ。';msg='ひと息ついて、午後もゆっくりいこう。'}$('timeGreeting').textContent=en;$('welcomeTitle').textContent=ja;$('welcomeMessage').textContent=msg}
+function renderGreeting(){const h=new Date().getHours();let en='GOOD EVENING',ja='おかえり、タカ。',msg='今日も一日、お疲れさま。';if(h<11){en='GOOD MORNING';ja='おはよう、タカ。';msg='今日を、少し豊かに。'}else if(h<17){en='GOOD AFTERNOON';ja='こんにちは、タカ。';msg='ひと息ついて、午後もゆっくりいこう。'}if($('timeGreeting'))$('timeGreeting').textContent=en;if($('welcomeTitle'))$('welcomeTitle').textContent=ja;if($('welcomeMessage'))$('welcomeMessage').textContent=msg}
 function formatRecordDate(date,period,time='',includeTime=false){
   if(!date)return 'まだ記録がありません';
   const d=new Date(`${date}T12:00:00`);
@@ -1041,7 +1041,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='3.0.0';
+const APP_VERSION='3.0.1';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;

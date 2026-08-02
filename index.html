@@ -8,9 +8,9 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="Taka-Life" name="apple-mobile-web-app-title"/>
-<link href="manifest.webmanifest?v=3.0.0" rel="manifest"/>
+<link href="manifest.webmanifest?v=3.0.1" rel="manifest"/>
 <link href="apple-touch-icon-v2.png?v=2.8.6" rel="apple-touch-icon" sizes="180x180"/>
-<link href="styles.css?v=3.0.0" rel="stylesheet"/>
+<link href="styles.css?v=3.0.1" rel="stylesheet"/>
 <title>Taka-Life｜Rich Life with Mio</title>
 </head>
 <body id="top">
@@ -24,10 +24,9 @@
 </div>
 <button class="ghost hidden" id="installBtn" type="button">ホームに追加</button>
 </header>
-<main><section aria-label="ヘルス管理" class="app-page is-active" data-page="health" id="healthPage"><section aria-labelledby="welcomeTitle" class="welcome-panel">
-<p class="welcome-kicker" id="timeGreeting">GOOD MORNING</p>
-<h2 id="welcomeTitle">おはよう、タカ。</h2>
-<p id="welcomeMessage">今日を、少し豊かに。</p>
+<main><section aria-label="ヘルス管理" class="app-page is-active" data-page="health" id="healthPage"><section aria-labelledby="todaysMessageTitle" class="health-comment-panel health-top-message">
+<div class="health-comment-title"><span aria-hidden="true">✦</span><b id="todaysMessageTitle">TODAY'S MESSAGE</b></div>
+<p id="healthOverallComment">体重・血圧・HbA1cを記録すると、ここに全体のコメントが表示されます。</p>
 </section><section aria-labelledby="latestRecordsTitle" class="card latest-records-card luxury-records">
 <div class="latest-records-heading luxury-heading">
 <p class="eyebrow" id="latestRecordsTitle">LATEST RECORDS</p>
@@ -76,10 +75,7 @@
 <div class="health-score-status"><b id="healthScoreLabel">記録待ち</b><small id="healthScoreDelta">データを記録してね</small></div>
 </article>
 </div>
-<div aria-live="polite" class="health-comment-panel">
-<div class="health-comment-title"><span aria-hidden="true">✦</span><b>AIからのひとこと</b></div>
-<p id="healthOverallComment">体重・血圧・HbA1cを記録すると、ここに全体のコメントが表示されます。</p>
-</div>
+
 </section><section class="card trend-summary">
 <p class="eyebrow">WEEKLY SNAPSHOT</p>
 <div class="summary-grid">
@@ -341,9 +337,9 @@
 </div>
 <button class="ghost" id="checkUpdateBtn" type="button">更新を確認</button>
 </div>
-<p class="version">Taka-Life Ver.3.0.0 · Multi Page</p>
+<p class="version">Taka-Life Ver.3.0.1 · Multi Page</p>
 </section></section></main>
 <nav aria-label="メインメニュー" class="bottom-nav"><button aria-controls="healthPage" aria-selected="true" class="nav-item is-active" data-page-target="health" type="button"><span>♡</span><small>Health</small></button><button aria-controls="aiPage" aria-selected="false" class="nav-item" data-page-target="ai" type="button"><span>✦</span><small>AI Theater</small></button><button aria-controls="journalPage" aria-selected="false" class="nav-item" data-page-target="journal" type="button"><span>▤</span><small>Journal</small></button><button aria-controls="settingsPage" aria-selected="false" class="nav-item" data-page-target="settings" type="button"><span>⚙</span><small>Settings</small></button></nav>
-<script src="app.js?v=3.0.0"></script>
+<script src="app.js?v=3.0.1"></script>
 </body>
 </html>
