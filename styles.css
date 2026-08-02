@@ -946,3 +946,21 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
   .luxury-heading .eyebrow{letter-spacing:.27em}
   .bp-metric strong{min-width:5.65ch}
 }
+
+
+/* Ver.3.0.0 — Multi-page navigation */
+.app-page{display:none;animation:pageFade .22s ease}
+.app-page.is-active{display:block}
+@keyframes pageFade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.page-heading{padding:6px 5px 14px}
+.page-heading h2{margin:0 0 4px;font-size:29px;color:var(--coffee)}
+.page-description{margin:0;color:var(--muted);font-size:12px;line-height:1.6}
+#healthPage>.welcome-panel{padding-top:4px}
+.bottom-nav button.nav-item{appearance:none;border:0;background:transparent;display:grid;place-items:center;gap:2px;color:#cbbda7;padding:6px 4px;border-radius:14px;min-width:0;font:inherit;cursor:pointer}
+.bottom-nav button.nav-item span{font-size:18px;line-height:1}
+.bottom-nav button.nav-item small{font-size:8px;letter-spacing:.035em;white-space:nowrap}
+.bottom-nav button.nav-item.is-active{background:rgba(255,255,255,.10);color:#fff5e4;box-shadow:inset 0 0 0 1px rgba(234,223,199,.12)}
+.bottom-nav button.nav-item:active{transform:translateY(1px)}
+#journalPage .journal-preview{margin-top:2px}
+#settingsPage .settings-card{margin-top:2px}
+@media(max-width:390px){.bottom-nav button.nav-item small{font-size:7px}.page-heading h2{font-size:26px}}

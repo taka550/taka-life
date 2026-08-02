@@ -1041,7 +1041,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='2.8.9';
+const APP_VERSION='3.0.0';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
@@ -1107,3 +1107,43 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('focus',()=>updateGeminiUsageUi());
 
+
+
+// Ver.3.0.0 — bottom navigation and page switching
+(function setupPageNavigation(){
+  const PAGE_KEY='takaLife.activePage.v1';
+  const pages=[...document.querySelectorAll('.app-page')];
+  const buttons=[...document.querySelectorAll('[data-page-target]')];
+  if(!pages.length||!buttons.length)return;
+
+  function showPage(name,{scroll=true}={}){
+    const target=document.getElementById(`${name}Page`);
+    if(!target)return;
+    pages.forEach(page=>page.classList.toggle('is-active',page===target));
+    buttons.forEach(button=>{
+      const active=button.dataset.pageTarget===name;
+      button.classList.toggle('is-active',active);
+      button.setAttribute('aria-selected',String(active));
+    });
+    try{localStorage.setItem(PAGE_KEY,name)}catch(_){ }
+    if(scroll)window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  buttons.forEach(button=>button.addEventListener('click',()=>showPage(button.dataset.pageTarget)));
+  let initial='health';
+  try{initial=localStorage.getItem(PAGE_KEY)||'health'}catch(_){ }
+  if(!document.getElementById(`${initial}Page`))initial='health';
+  showPage(initial,{scroll:false});
+
+  // Existing buttons may still point to sections that now live on another page.
+  document.querySelectorAll('[data-scroll-target]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const selector=button.dataset.scrollTarget;
+      const target=document.querySelector(selector);
+      if(!target)return;
+      const page=target.closest('.app-page');
+      if(page)showPage(page.dataset.page,{scroll:false});
+      requestAnimationFrame(()=>target.scrollIntoView({behavior:'smooth',block:'start'}));
+    });
+  });
+})();

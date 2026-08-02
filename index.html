@@ -1,401 +1,349 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#231b16" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Taka-Life" />
-  <link rel="manifest" href="manifest.webmanifest?v=2.8.9" />
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-v2.png?v=2.8.6" />
-  <link rel="stylesheet" href="styles.css?v=2.8.9" />
-  <title>Taka-Life｜Rich Life with Mio</title>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<meta content="#231b16" name="theme-color"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="Taka-Life" name="apple-mobile-web-app-title"/>
+<link href="manifest.webmanifest?v=3.0.0" rel="manifest"/>
+<link href="apple-touch-icon-v2.png?v=2.8.6" rel="apple-touch-icon" sizes="180x180"/>
+<link href="styles.css?v=3.0.0" rel="stylesheet"/>
+<title>Taka-Life｜Rich Life with Mio</title>
 </head>
 <body id="top">
-  <header class="app-header">
-    <div class="brand-lockup">
-      <span class="brand-mark" aria-hidden="true">TL</span>
-      <div>
-        <p class="eyebrow">RICH LIFE WITH MIO</p>
-        <h1>Taka-Life</h1>
-      </div>
-    </div>
-    <button id="installBtn" class="ghost hidden" type="button">ホームに追加</button>
-  </header>
-
-  <main>
-    <section class="welcome-panel" aria-labelledby="welcomeTitle">
-      <p id="timeGreeting" class="welcome-kicker">GOOD MORNING</p>
-      <h2 id="welcomeTitle">おはよう、タカ。</h2>
-      <p id="welcomeMessage">今日を、少し豊かに。</p>
-    </section>
-
-    <section class="card mio-card anime-theater" id="mioTheater">
-      <div class="mio-heading">
-        <div>
-          <p class="ai-theater-title">AI THEATER</p>
-        </div>
-        <button id="replayTheaterBtn" class="theater-badge replay-badge" type="button" aria-label="AIシアターをもう一度再生">↻ REPLAY</button>
-      </div>
-
-      <div class="anime-stage theater-v220 theater-v230" id="animeStage" aria-live="polite">
-        <div class="theater-ambience" aria-hidden="true">
-          <i></i><i></i><i></i><i></i><i></i><i></i>
-        </div>
-        <div class="theater-time-chip" id="theaterTimeChip" aria-hidden="true">NIGHT THEATER</div>
-        <div class="character-showcase" aria-label="デビルAIとエンジェルAI">
-          <div class="character-panel character-devil" id="devilCharacter">
-            <img src="mio-devil-v220.webp?v=2.8.1" alt="少し小悪魔っぽく自由なデビルAI" />
-            <span class="character-name">デビルAI</span>
-          </div>
-          <div class="character-panel character-angel" id="angelCharacter">
-            <img src="mio-angel-v220.webp?v=2.8.1" alt="優しく健康を応援するエンジェルAI" />
-            <span class="character-name">エンジェルAI</span>
-          </div>
-        </div>
-
-        <div class="dialogue-track" id="dialogueTrack">
-          <article class="speech speech-angel" data-scene="0">
-            <div><span>エンジェルAI</span><p id="angelText1">今日は何があったのか、まず一つ聞かせてくださいね。</p></div>
-            <img class="speech-avatar" src="mio-angel-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
-          </article>
-          <article class="speech speech-devil" data-scene="1">
-            <img class="speech-avatar" src="mio-devil-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
-            <div><span>デビルAI</span><p id="devilText1">ほな、その話にちょっとだけちゃちゃ入れよか。</p></div>
-          </article>
-          <article class="speech speech-angel" data-scene="2">
-            <div><span>エンジェルAI</span><p id="angelText2">ちょっとだけ、で済む気がしません（笑）。</p></div>
-            <img class="speech-avatar" src="mio-angel-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
-          </article>
-          <article class="speech speech-devil" data-scene="3">
-            <img class="speech-avatar" src="mio-devil-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
-            <div><span>デビルAI</span><p id="devilText2">ちゃちゃやない、会話のスパイスや。</p></div>
-          </article>
-          <article class="speech speech-angel" data-scene="4">
-            <div><span>エンジェルAI</span><p id="angelText3">スパイスは控えめにして、今日の話をきれいに締めましょう。</p></div>
-            <img class="speech-avatar" src="mio-angel-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
-          </article>
-          <article class="speech speech-devil" data-scene="5">
-            <img class="speech-avatar" src="mio-devil-v220.webp?v=2.8.1" alt="" aria-hidden="true" />
-            <div><span>デビルAI</span><p id="devilText3">しゃあないな。最後にひと振りだけやで。</p></div>
-          </article>
-        </div>
-
-        <div class="theater-finale" id="theaterFinale">
-          <span aria-hidden="true">🪽</span><p id="finaleText">二人とも、タカの味方。</p><span aria-hidden="true">🪽</span>
-        </div>
-      </div>
-      <div class="theater-controls">
-        <button id="skipTheaterBtn" class="theater-action secondary-theater" type="button">まとめて表示</button>
-        <button id="openMioChatBtn" class="theater-action ai-theater-action" type="button">✦ AIに相談</button>
-      </div>
-
-      <section class="mio-ai-panel" id="mioAiPanel" hidden aria-labelledby="mioAiTitle">
-        <div class="mio-ai-header">
-          <div>
-            <p class="eyebrow">AI COMPANION</p>
-            <h3 id="mioAiTitle">AIと話す</h3>
-          </div>
-          <button id="closeMioChatBtn" class="mio-ai-close" type="button" aria-label="閉じる">×</button>
-        </div>
-
-        <div class="mio-api-setup" id="mioApiSetup">
-          <label for="geminiApiKey">Gemini APIキー</label>
-          <div class="api-key-row">
-            <input id="geminiApiKey" type="password" autocomplete="off" autocapitalize="none"
-              placeholder="AIza…で始まるキー" />
-            <button id="toggleApiKeyBtn" class="ghost compact-button" type="button">表示</button>
-          </div>
-          <p class="mio-ai-note">キーはこのiPhone内だけに保存され、ZIPやGitHubには入りません。</p>
-          <div class="mio-ai-actions">
-            <button id="saveApiKeyBtn" class="secondary" type="button">キーを保存</button>
-            <button id="testGeminiBtn" class="primary" type="button">接続テスト</button>
-          </div>
-        </div>
-
-        <div class="mio-chat-area" id="mioChatArea">
-          <label for="mioQuestion">今日、AIに話したいこと</label>
-          <textarea id="mioQuestion" rows="3" maxlength="500"
-            placeholder="例：今日は仕事でちょっと疲れた。でもスタバでゆっくりできた。"></textarea>
-          <div class="mio-context-preview" id="mioContextPreview"></div>
-          <p class="mio-memory-note" id="mioMemoryNote">最近の相談は、このiPhone内だけでAIの会話メモとして使います。</p>
-          <button id="askMioBtn" class="primary mio-ask-button" type="button">AIシアターをつくる</button>
-          <div class="gemini-usage-card" aria-label="Gemini利用回数の目安">
-            <div class="gemini-usage-head">
-              <span>現在のGemini利用</span>
-              <strong id="geminiUsageCount">0 / 20 回</strong>
-            </div>
-            <div id="geminiUsageTrack" class="gemini-usage-track" role="progressbar" aria-valuemin="0" aria-valuemax="20" aria-valuenow="0">
-              <div id="geminiUsageBar" class="gemini-usage-bar"></div>
-            </div>
-            <p id="geminiUsageNote" class="gemini-usage-note">あと約20回の目安です。</p>
-            <p class="gemini-usage-caption">アプリ内で数えた目安です。太平洋時間0時（日本時間16時／17時ごろ）を基準にリセットします。Google側の実際の残量とは異なる場合があります。</p>
-          </div>
-
-          <p id="mioAiStatus" class="message mio-ai-status" role="status"></p>
-        </div>
-      </section>
-    </section>
-
-    <section class="card latest-records-card luxury-records" aria-labelledby="latestRecordsTitle">
-      <div class="latest-records-heading luxury-heading">
-        <p id="latestRecordsTitle" class="eyebrow">LATEST RECORDS</p>
-      </div>
-
-      <div class="luxury-rule" aria-hidden="true"><span>✦</span></div>
-
-      <div class="latest-primary-row">
-        <article class="latest-weight-block luxury-metric weight-metric">
-          <div class="metric-title"><span class="metric-icon" aria-hidden="true">▣</span><span>現在体重</span></div>
-          <div class="weight-display luxury-weight" aria-label="現在体重">
-            <span id="currentWeightInteger">--</span><span id="currentWeightDecimal" class="weight-decimal"></span><small>kg</small>
-          </div>
-          <p id="currentMeta" class="latest-meta">まだ記録がありません</p>
-        </article>
-
-        <article class="bmi-metric luxury-metric">
-          <p class="bmi-label">BMI</p>
-          <div class="bmi-value-line"><strong id="latestBmi">--</strong><span id="latestBmiLabel">記録なし</span></div>
-          <div class="bmi-scale" aria-label="BMIの位置">
-            <div class="bmi-scale-labels"><span>痩せ</span><span>標準</span><span>やや肥満</span><span>肥満</span></div>
-            <div class="bmi-track"><i id="bmiMarker"></i></div>
-          </div>
-        </article>
-      </div>
-
-      <div class="latest-vitals-row">
-        <article class="latest-record-item luxury-metric bp-metric">
-          <div class="metric-title"><span class="time-icon sun" aria-hidden="true">☀</span><span>血圧・朝</span></div>
-          <strong id="latestBpMorning">-- / --</strong><em>mmHg</em>
-          <p id="latestBpMorningPulse" class="pulse-line">♥ 脈拍 --</p>
-          <small id="latestBpMorningMeta">まだ記録がありません</small>
-        </article>
-        <article class="latest-record-item luxury-metric bp-metric">
-          <div class="metric-title"><span class="time-icon moon" aria-hidden="true">◒</span><span>血圧・夜</span></div>
-          <strong id="latestBpNight">-- / --</strong><em>mmHg</em>
-          <p id="latestBpNightPulse" class="pulse-line">♥ 脈拍 --</p>
-          <small id="latestBpNightMeta">まだ記録がありません</small>
-        </article>
-      </div>
-
-      <div class="latest-hba-row">
-        <article class="latest-record-item latest-hba1c-item luxury-metric">
-          <div class="metric-title"><span class="metric-icon drop" aria-hidden="true">◉</span><span>HbA1c</span></div>
-          <div><strong id="latestHba1c">--</strong><em>%</em></div>
-          <small id="latestHba1cMeta">まだ記録がありません</small>
-        </article>
-        <article class="health-score-panel" aria-label="今週の健康スコア">
-          <p class="health-score-kicker">HEALTH SCORE</p>
-          <div class="health-score-main"><strong id="healthScore">--</strong><span>/100</span></div>
-          <div class="health-score-status"><b id="healthScoreLabel">記録待ち</b><small id="healthScoreDelta">データを記録してね</small></div>
-        </article>
-      </div>
-
-      <div class="health-comment-panel" aria-live="polite">
-        <div class="health-comment-title"><span aria-hidden="true">✦</span><b>AIからのひとこと</b></div>
-        <p id="healthOverallComment">体重・血圧・HbA1cを記録すると、ここに全体のコメントが表示されます。</p>
-      </div>
-    </section>
-
-    <section class="card trend-summary">
-      <p class="eyebrow">WEEKLY SNAPSHOT</p>
-      <div class="summary-grid">
-        <div><span>7日間の変化</span><strong id="weekChange">--</strong></div>
-        <div><span>直近7回平均</span><strong id="recentAverage">--</strong></div>
-        <div><span>記録回数</span><strong id="recordCount">--</strong></div>
-      </div>
-    </section>
-
-    <section class="card input-card" id="recordSection">
-      <div class="section-heading">
-        <div><p class="eyebrow">RECORD</p><h2>今日を記録する</h2></div>
-        <button id="nowBtn" class="ghost" type="button">現在日時</button>
-      </div>
-      <form id="weightForm">
-        <label>体重（kg）
-          <input id="weightInput" inputmode="decimal" type="number" min="30" max="250" step="0.1" placeholder="85.6" required />
-        </label>
-        <div class="two-col">
-          <label>日付<input id="dateInput" type="date" required /></label>
-          <label>時刻<input id="timeInput" type="time" required /></label>
-        </div>
-        <label>時間帯
+<header class="app-header">
+<div class="brand-lockup">
+<span aria-hidden="true" class="brand-mark">TL</span>
+<div>
+<p class="eyebrow">RICH LIFE WITH MIO</p>
+<h1>Taka-Life</h1>
+</div>
+</div>
+<button class="ghost hidden" id="installBtn" type="button">ホームに追加</button>
+</header>
+<main><section aria-label="ヘルス管理" class="app-page is-active" data-page="health" id="healthPage"><section aria-labelledby="welcomeTitle" class="welcome-panel">
+<p class="welcome-kicker" id="timeGreeting">GOOD MORNING</p>
+<h2 id="welcomeTitle">おはよう、タカ。</h2>
+<p id="welcomeMessage">今日を、少し豊かに。</p>
+</section><section aria-labelledby="latestRecordsTitle" class="card latest-records-card luxury-records">
+<div class="latest-records-heading luxury-heading">
+<p class="eyebrow" id="latestRecordsTitle">LATEST RECORDS</p>
+</div>
+<div aria-hidden="true" class="luxury-rule"><span>✦</span></div>
+<div class="latest-primary-row">
+<article class="latest-weight-block luxury-metric weight-metric">
+<div class="metric-title"><span aria-hidden="true" class="metric-icon">▣</span><span>現在体重</span></div>
+<div aria-label="現在体重" class="weight-display luxury-weight">
+<span id="currentWeightInteger">--</span><span class="weight-decimal" id="currentWeightDecimal"></span><small>kg</small>
+</div>
+<p class="latest-meta" id="currentMeta">まだ記録がありません</p>
+</article>
+<article class="bmi-metric luxury-metric">
+<p class="bmi-label">BMI</p>
+<div class="bmi-value-line"><strong id="latestBmi">--</strong><span id="latestBmiLabel">記録なし</span></div>
+<div aria-label="BMIの位置" class="bmi-scale">
+<div class="bmi-scale-labels"><span>痩せ</span><span>標準</span><span>やや肥満</span><span>肥満</span></div>
+<div class="bmi-track"><i id="bmiMarker"></i></div>
+</div>
+</article>
+</div>
+<div class="latest-vitals-row">
+<article class="latest-record-item luxury-metric bp-metric">
+<div class="metric-title"><span aria-hidden="true" class="time-icon sun">☀</span><span>血圧・朝</span></div>
+<strong id="latestBpMorning">-- / --</strong><em>mmHg</em>
+<p class="pulse-line" id="latestBpMorningPulse">♥ 脈拍 --</p>
+<small id="latestBpMorningMeta">まだ記録がありません</small>
+</article>
+<article class="latest-record-item luxury-metric bp-metric">
+<div class="metric-title"><span aria-hidden="true" class="time-icon moon">◒</span><span>血圧・夜</span></div>
+<strong id="latestBpNight">-- / --</strong><em>mmHg</em>
+<p class="pulse-line" id="latestBpNightPulse">♥ 脈拍 --</p>
+<small id="latestBpNightMeta">まだ記録がありません</small>
+</article>
+</div>
+<div class="latest-hba-row">
+<article class="latest-record-item latest-hba1c-item luxury-metric">
+<div class="metric-title"><span aria-hidden="true" class="metric-icon drop">◉</span><span>HbA1c</span></div>
+<div><strong id="latestHba1c">--</strong><em>%</em></div>
+<small id="latestHba1cMeta">まだ記録がありません</small>
+</article>
+<article aria-label="今週の健康スコア" class="health-score-panel">
+<p class="health-score-kicker">HEALTH SCORE</p>
+<div class="health-score-main"><strong id="healthScore">--</strong><span>/100</span></div>
+<div class="health-score-status"><b id="healthScoreLabel">記録待ち</b><small id="healthScoreDelta">データを記録してね</small></div>
+</article>
+</div>
+<div aria-live="polite" class="health-comment-panel">
+<div class="health-comment-title"><span aria-hidden="true">✦</span><b>AIからのひとこと</b></div>
+<p id="healthOverallComment">体重・血圧・HbA1cを記録すると、ここに全体のコメントが表示されます。</p>
+</div>
+</section><section class="card trend-summary">
+<p class="eyebrow">WEEKLY SNAPSHOT</p>
+<div class="summary-grid">
+<div><span>7日間の変化</span><strong id="weekChange">--</strong></div>
+<div><span>直近7回平均</span><strong id="recentAverage">--</strong></div>
+<div><span>記録回数</span><strong id="recordCount">--</strong></div>
+</div>
+</section><section class="card input-card" id="recordSection">
+<div class="section-heading">
+<div><p class="eyebrow">RECORD</p><h2>今日を記録する</h2></div>
+<button class="ghost" id="nowBtn" type="button">現在日時</button>
+</div>
+<form id="weightForm">
+<label>体重（kg）
+          <input id="weightInput" inputmode="decimal" max="250" min="30" placeholder="85.6" required="" step="0.1" type="number"/>
+</label>
+<div class="two-col">
+<label>日付<input id="dateInput" required="" type="date"/></label>
+<label>時刻<input id="timeInput" required="" type="time"/></label>
+</div>
+<label>時間帯
           <select id="periodInput">
-            <option value="auto">自動判定</option>
-            <option value="朝">朝</option>
-            <option value="昼">昼</option>
-            <option value="夜">夜</option>
-          </select>
-        </label>
-        <label>今日のひとこと（任意）<textarea id="memoInput" rows="2" placeholder="体調、食事、うれしかったことなど"></textarea></label>
-        <button class="primary" type="submit">記録して、ミオ劇場へ</button>
-      </form>
-      <p id="saveMessage" class="message" role="status"></p>
-    </section>
-
-
-    <section class="card input-card blood-pressure-card" id="bloodPressureSection">
-      <div class="section-heading">
-        <div><p class="eyebrow">BLOOD PRESSURE</p><h2>血圧を記録する</h2></div>
-        <button id="bpNowBtn" class="ghost" type="button">現在日時</button>
-      </div>
-
-      <div class="bp-latest" id="bpLatest" aria-live="polite">
-        <span>最新記録</span>
-        <strong>まだ記録がありません</strong>
-      </div>
-
-      <form id="bloodPressureForm">
-        <div class="bp-value-grid">
-          <label>最高血圧（上）
-            <span class="unit-input"><input id="systolicInput" inputmode="numeric" type="number" min="60" max="260" step="1" placeholder="120" required /><small>mmHg</small></span>
-          </label>
-          <label>最低血圧（下）
-            <span class="unit-input"><input id="diastolicInput" inputmode="numeric" type="number" min="30" max="180" step="1" placeholder="75" required /><small>mmHg</small></span>
-          </label>
-        </div>
-        <label>脈拍
-          <span class="unit-input"><input id="pulseInput" inputmode="numeric" type="number" min="30" max="220" step="1" placeholder="65" required /><small>回/分</small></span>
-        </label>
-        <div class="two-col">
-          <label>日付<input id="bpDateInput" type="date" required /></label>
-          <label>時刻<input id="bpTimeInput" type="time" required /></label>
-        </div>
-        <label>メモ（任意）<textarea id="bpMemoInput" rows="2" placeholder="測定時の体調や状況など"></textarea></label>
-        <button class="primary" type="submit">血圧を記録する</button>
-      </form>
-      <p id="bpSaveMessage" class="message" role="status"></p>
-
-      <div class="bp-history-wrap">
-        <div class="section-heading compact-heading">
-          <div><p class="eyebrow">RECENT</p><h3>最近の血圧</h3></div>
-        </div>
-        <div class="table-wrap">
-          <table class="bp-table">
-            <thead><tr><th>日時</th><th>血圧</th><th>脈拍</th></tr></thead>
-            <tbody id="bpHistoryBody"><tr><td colspan="3">まだ記録がありません</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="card input-card blood-glucose-card" id="bloodGlucoseSection">
-      <div class="section-heading">
-        <div><p class="eyebrow">BLOOD GLUCOSE</p><h2>血糖値を記録する</h2></div>
-        <button id="bgNowBtn" class="ghost" type="button">現在日時</button>
-      </div>
-
-      <div class="bg-latest" id="bgLatest" aria-live="polite">
-        <span>最新記録</span>
-        <strong>まだ記録がありません</strong>
-      </div>
-
-      <form id="bloodGlucoseForm">
-        <label>血糖値
-          <span class="unit-input"><input id="bloodGlucoseInput" inputmode="numeric" type="number" min="20" max="600" step="1" placeholder="110" required /><small>mg/dL</small></span>
-        </label>
-        <label>測定タイミング
-          <select id="bloodGlucoseTimingInput" required>
-            <option value="空腹時">空腹時</option>
-            <option value="食前">食前</option>
-            <option value="食後">食後</option>
-            <option value="就寝前">就寝前</option>
-            <option value="その他">その他</option>
-          </select>
-        </label>
-        <div class="two-col">
-          <label>日付<input id="bgDateInput" type="date" required /></label>
-          <label>時刻<input id="bgTimeInput" type="time" required /></label>
-        </div>
-        <label>メモ（任意）<textarea id="bgMemoInput" rows="2" placeholder="食事内容、体調、運動など"></textarea></label>
-        <button class="primary" type="submit">血糖値を記録する</button>
-      </form>
-      <p id="bgSaveMessage" class="message" role="status"></p>
-
-      <div class="bg-history-wrap">
-        <div class="section-heading compact-heading">
-          <div><p class="eyebrow">RECENT</p><h3>最近の血糖値</h3></div>
-        </div>
-        <div class="table-wrap">
-          <table class="bg-table">
-            <thead><tr><th>日時</th><th>血糖値</th><th>タイミング</th></tr></thead>
-            <tbody id="bgHistoryBody"><tr><td colspan="3">まだ記録がありません</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="hba1c-record-wrap" id="hba1cSection">
-        <div class="section-heading compact-heading">
-          <div><p class="eyebrow">HBA1C</p><h3>HbA1cを記録する</h3></div>
-          <button id="hba1cTodayBtn" class="ghost" type="button">今日</button>
-        </div>
-        <div class="hba1c-latest" id="hba1cLatest" aria-live="polite">
-          <span>最新記録</span><strong>まだ記録がありません</strong>
-        </div>
-        <form id="hba1cForm">
-          <label>HbA1c
-            <span class="unit-input"><input id="hba1cInput" inputmode="decimal" type="number" min="3" max="20" step="0.1" placeholder="7.0" required /><small>%</small></span>
-          </label>
-          <label>測定日<input id="hba1cDateInput" type="date" required /></label>
-          <label>メモ（任意）<textarea id="hba1cMemoInput" rows="2" placeholder="診察時のメモなど"></textarea></label>
-          <button class="primary" type="submit">HbA1cを記録する</button>
-        </form>
-        <p id="hba1cSaveMessage" class="message" role="status"></p>
-      </div>
-    </section>
-
-    <section class="card chart-card">
-      <div class="section-heading">
-        <div><p class="eyebrow">LIFE TREND</p><h2>体重の流れ</h2></div>
-        <select id="rangeSelect" class="compact"><option value="7">7日</option><option value="30">30日</option><option value="all">全部</option></select>
-      </div>
-      <canvas id="chart" height="220" aria-label="体重推移グラフ"></canvas>
-      <div class="legend"><span><i class="legend-dot morning"></i>朝</span><span><i class="legend-dot night"></i>夜</span><span><i class="legend-line"></i>目標 85.0kg</span></div>
-    </section>
-
-    <section class="card" id="historySection">
-      <div class="section-heading">
-        <div><p class="eyebrow">HISTORY</p><h2>最近の記録</h2></div>
-        <button id="showAllBtn" class="ghost" type="button">すべて表示</button>
-      </div>
-      <div class="table-wrap"><table><thead><tr><th>日付</th><th>朝</th><th>昼</th><th>夜</th></tr></thead><tbody id="historyBody"></tbody></table></div>
-    </section>
-
-    <section class="card journal-preview">
-      <p class="eyebrow">RICH LIFE JOURNAL</p>
-      <h2>今日の一日を、いつか物語に。</h2>
-      <p>体重、ひとこと、AIとの会話。少しずつ積み重ねた記録が、読み返して楽しい日記になっていく。</p>
-      <span class="coming-soon">COMING SOON</span>
-    </section>
-
-    <section class="card settings-card">
-      <p class="eyebrow">BACKUP</p><h2>データ管理</h2>
-      <div class="button-stack">
-        <button id="exportJsonBtn" class="secondary" type="button">完全バックアップ（JSON）</button>
-        <button id="exportCsvBtn" class="secondary" type="button">Excel用CSVを書き出す</button>
-        <label class="file-button">バックアップを読み込む<input id="importFile" type="file" accept=".json,.csv,text/csv,application/json" /></label>
-      </div>
-      <p class="muted small">データはこの端末内に保存されます。SafariのWebサイトデータを削除する前には、JSONバックアップがおすすめです。</p>
-      <div class="update-panel" aria-live="polite">
-        <div>
-          <p class="eyebrow">APP UPDATE</p>
-          <strong>アプリの更新</strong>
-          <p id="updateStatus" class="muted small">起動時に最新版を自動確認します。</p>
-        </div>
-        <button id="checkUpdateBtn" class="ghost" type="button">更新を確認</button>
-      </div>
-      <p class="version">Taka-Life Ver.2.8.9 · Latest Records</p>
-    </section>
-  </main>
-
-  <nav class="bottom-nav" aria-label="メインメニュー">
-    <a href="#top" data-scroll="top"><span>⌂</span><small>Today</small></a>
-    <a href="#recordSection" data-scroll="record"><span>＋</span><small>記録</small></a>
-    <a href="#mioTheater" data-scroll="mio"><span>✦</span><small>AI</small></a>
-    <a href="#historySection" data-scroll="history"><span>▤</span><small>履歴</small></a>
-  </nav>
-
-  <script src="app.js?v=2.8.9"></script>
+<option value="auto">自動判定</option>
+<option value="朝">朝</option>
+<option value="昼">昼</option>
+<option value="夜">夜</option>
+</select>
+</label>
+<label>今日のひとこと（任意）<textarea id="memoInput" placeholder="体調、食事、うれしかったことなど" rows="2"></textarea></label>
+<button class="primary" type="submit">記録して、ミオ劇場へ</button>
+</form>
+<p class="message" id="saveMessage" role="status"></p>
+</section><section class="card input-card blood-pressure-card" id="bloodPressureSection">
+<div class="section-heading">
+<div><p class="eyebrow">BLOOD PRESSURE</p><h2>血圧を記録する</h2></div>
+<button class="ghost" id="bpNowBtn" type="button">現在日時</button>
+</div>
+<div aria-live="polite" class="bp-latest" id="bpLatest">
+<span>最新記録</span>
+<strong>まだ記録がありません</strong>
+</div>
+<form id="bloodPressureForm">
+<div class="bp-value-grid">
+<label>最高血圧（上）
+            <span class="unit-input"><input id="systolicInput" inputmode="numeric" max="260" min="60" placeholder="120" required="" step="1" type="number"/><small>mmHg</small></span>
+</label>
+<label>最低血圧（下）
+            <span class="unit-input"><input id="diastolicInput" inputmode="numeric" max="180" min="30" placeholder="75" required="" step="1" type="number"/><small>mmHg</small></span>
+</label>
+</div>
+<label>脈拍
+          <span class="unit-input"><input id="pulseInput" inputmode="numeric" max="220" min="30" placeholder="65" required="" step="1" type="number"/><small>回/分</small></span>
+</label>
+<div class="two-col">
+<label>日付<input id="bpDateInput" required="" type="date"/></label>
+<label>時刻<input id="bpTimeInput" required="" type="time"/></label>
+</div>
+<label>メモ（任意）<textarea id="bpMemoInput" placeholder="測定時の体調や状況など" rows="2"></textarea></label>
+<button class="primary" type="submit">血圧を記録する</button>
+</form>
+<p class="message" id="bpSaveMessage" role="status"></p>
+<div class="bp-history-wrap">
+<div class="section-heading compact-heading">
+<div><p class="eyebrow">RECENT</p><h3>最近の血圧</h3></div>
+</div>
+<div class="table-wrap">
+<table class="bp-table">
+<thead><tr><th>日時</th><th>血圧</th><th>脈拍</th></tr></thead>
+<tbody id="bpHistoryBody"><tr><td colspan="3">まだ記録がありません</td></tr></tbody>
+</table>
+</div>
+</div>
+</section><section class="card input-card blood-glucose-card" id="bloodGlucoseSection">
+<div class="section-heading">
+<div><p class="eyebrow">BLOOD GLUCOSE</p><h2>血糖値を記録する</h2></div>
+<button class="ghost" id="bgNowBtn" type="button">現在日時</button>
+</div>
+<div aria-live="polite" class="bg-latest" id="bgLatest">
+<span>最新記録</span>
+<strong>まだ記録がありません</strong>
+</div>
+<form id="bloodGlucoseForm">
+<label>血糖値
+          <span class="unit-input"><input id="bloodGlucoseInput" inputmode="numeric" max="600" min="20" placeholder="110" required="" step="1" type="number"/><small>mg/dL</small></span>
+</label>
+<label>測定タイミング
+          <select id="bloodGlucoseTimingInput" required="">
+<option value="空腹時">空腹時</option>
+<option value="食前">食前</option>
+<option value="食後">食後</option>
+<option value="就寝前">就寝前</option>
+<option value="その他">その他</option>
+</select>
+</label>
+<div class="two-col">
+<label>日付<input id="bgDateInput" required="" type="date"/></label>
+<label>時刻<input id="bgTimeInput" required="" type="time"/></label>
+</div>
+<label>メモ（任意）<textarea id="bgMemoInput" placeholder="食事内容、体調、運動など" rows="2"></textarea></label>
+<button class="primary" type="submit">血糖値を記録する</button>
+</form>
+<p class="message" id="bgSaveMessage" role="status"></p>
+<div class="bg-history-wrap">
+<div class="section-heading compact-heading">
+<div><p class="eyebrow">RECENT</p><h3>最近の血糖値</h3></div>
+</div>
+<div class="table-wrap">
+<table class="bg-table">
+<thead><tr><th>日時</th><th>血糖値</th><th>タイミング</th></tr></thead>
+<tbody id="bgHistoryBody"><tr><td colspan="3">まだ記録がありません</td></tr></tbody>
+</table>
+</div>
+</div>
+<div class="hba1c-record-wrap" id="hba1cSection">
+<div class="section-heading compact-heading">
+<div><p class="eyebrow">HBA1C</p><h3>HbA1cを記録する</h3></div>
+<button class="ghost" id="hba1cTodayBtn" type="button">今日</button>
+</div>
+<div aria-live="polite" class="hba1c-latest" id="hba1cLatest">
+<span>最新記録</span><strong>まだ記録がありません</strong>
+</div>
+<form id="hba1cForm">
+<label>HbA1c
+            <span class="unit-input"><input id="hba1cInput" inputmode="decimal" max="20" min="3" placeholder="7.0" required="" step="0.1" type="number"/><small>%</small></span>
+</label>
+<label>測定日<input id="hba1cDateInput" required="" type="date"/></label>
+<label>メモ（任意）<textarea id="hba1cMemoInput" placeholder="診察時のメモなど" rows="2"></textarea></label>
+<button class="primary" type="submit">HbA1cを記録する</button>
+</form>
+<p class="message" id="hba1cSaveMessage" role="status"></p>
+</div>
+</section><section class="card chart-card">
+<div class="section-heading">
+<div><p class="eyebrow">LIFE TREND</p><h2>体重の流れ</h2></div>
+<select class="compact" id="rangeSelect"><option value="7">7日</option><option value="30">30日</option><option value="all">全部</option></select>
+</div>
+<canvas aria-label="体重推移グラフ" height="220" id="chart"></canvas>
+<div class="legend"><span><i class="legend-dot morning"></i>朝</span><span><i class="legend-dot night"></i>夜</span><span><i class="legend-line"></i>目標 85.0kg</span></div>
+</section><section class="card" id="historySection">
+<div class="section-heading">
+<div><p class="eyebrow">HISTORY</p><h2>最近の記録</h2></div>
+<button class="ghost" id="showAllBtn" type="button">すべて表示</button>
+</div>
+<div class="table-wrap"><table><thead><tr><th>日付</th><th>朝</th><th>昼</th><th>夜</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+</section></section><section aria-label="AIシアター" class="app-page" data-page="ai" id="aiPage"><div class="page-heading"><p class="eyebrow">AI COMPANION</p><h2>AIシアター</h2><p class="page-description">AIとの会話と、前回のシアターをここで楽しめます。</p></div><section class="card mio-card anime-theater" id="mioTheater">
+<div class="mio-heading">
+<div>
+<p class="ai-theater-title">AI THEATER</p>
+</div>
+<button aria-label="AIシアターをもう一度再生" class="theater-badge replay-badge" id="replayTheaterBtn" type="button">↻ REPLAY</button>
+</div>
+<div aria-live="polite" class="anime-stage theater-v220 theater-v230" id="animeStage">
+<div aria-hidden="true" class="theater-ambience">
+<i></i><i></i><i></i><i></i><i></i><i></i>
+</div>
+<div aria-hidden="true" class="theater-time-chip" id="theaterTimeChip">NIGHT THEATER</div>
+<div aria-label="デビルAIとエンジェルAI" class="character-showcase">
+<div class="character-panel character-devil" id="devilCharacter">
+<img alt="少し小悪魔っぽく自由なデビルAI" src="mio-devil-v220.webp?v=2.8.1"/>
+<span class="character-name">デビルAI</span>
+</div>
+<div class="character-panel character-angel" id="angelCharacter">
+<img alt="優しく健康を応援するエンジェルAI" src="mio-angel-v220.webp?v=2.8.1"/>
+<span class="character-name">エンジェルAI</span>
+</div>
+</div>
+<div class="dialogue-track" id="dialogueTrack">
+<article class="speech speech-angel" data-scene="0">
+<div><span>エンジェルAI</span><p id="angelText1">今日は何があったのか、まず一つ聞かせてくださいね。</p></div>
+<img alt="" aria-hidden="true" class="speech-avatar" src="mio-angel-v220.webp?v=2.8.1"/>
+</article>
+<article class="speech speech-devil" data-scene="1">
+<img alt="" aria-hidden="true" class="speech-avatar" src="mio-devil-v220.webp?v=2.8.1"/>
+<div><span>デビルAI</span><p id="devilText1">ほな、その話にちょっとだけちゃちゃ入れよか。</p></div>
+</article>
+<article class="speech speech-angel" data-scene="2">
+<div><span>エンジェルAI</span><p id="angelText2">ちょっとだけ、で済む気がしません（笑）。</p></div>
+<img alt="" aria-hidden="true" class="speech-avatar" src="mio-angel-v220.webp?v=2.8.1"/>
+</article>
+<article class="speech speech-devil" data-scene="3">
+<img alt="" aria-hidden="true" class="speech-avatar" src="mio-devil-v220.webp?v=2.8.1"/>
+<div><span>デビルAI</span><p id="devilText2">ちゃちゃやない、会話のスパイスや。</p></div>
+</article>
+<article class="speech speech-angel" data-scene="4">
+<div><span>エンジェルAI</span><p id="angelText3">スパイスは控えめにして、今日の話をきれいに締めましょう。</p></div>
+<img alt="" aria-hidden="true" class="speech-avatar" src="mio-angel-v220.webp?v=2.8.1"/>
+</article>
+<article class="speech speech-devil" data-scene="5">
+<img alt="" aria-hidden="true" class="speech-avatar" src="mio-devil-v220.webp?v=2.8.1"/>
+<div><span>デビルAI</span><p id="devilText3">しゃあないな。最後にひと振りだけやで。</p></div>
+</article>
+</div>
+<div class="theater-finale" id="theaterFinale">
+<span aria-hidden="true">🪽</span><p id="finaleText">二人とも、タカの味方。</p><span aria-hidden="true">🪽</span>
+</div>
+</div>
+<div class="theater-controls">
+<button class="theater-action secondary-theater" id="skipTheaterBtn" type="button">まとめて表示</button>
+<button class="theater-action ai-theater-action" id="openMioChatBtn" type="button">✦ AIに相談</button>
+</div>
+<section aria-labelledby="mioAiTitle" class="mio-ai-panel" hidden="" id="mioAiPanel">
+<div class="mio-ai-header">
+<div>
+<p class="eyebrow">AI COMPANION</p>
+<h3 id="mioAiTitle">AIと話す</h3>
+</div>
+<button aria-label="閉じる" class="mio-ai-close" id="closeMioChatBtn" type="button">×</button>
+</div>
+<div class="mio-api-setup" id="mioApiSetup">
+<label for="geminiApiKey">Gemini APIキー</label>
+<div class="api-key-row">
+<input autocapitalize="none" autocomplete="off" id="geminiApiKey" placeholder="AIza…で始まるキー" type="password"/>
+<button class="ghost compact-button" id="toggleApiKeyBtn" type="button">表示</button>
+</div>
+<p class="mio-ai-note">キーはこのiPhone内だけに保存され、ZIPやGitHubには入りません。</p>
+<div class="mio-ai-actions">
+<button class="secondary" id="saveApiKeyBtn" type="button">キーを保存</button>
+<button class="primary" id="testGeminiBtn" type="button">接続テスト</button>
+</div>
+</div>
+<div class="mio-chat-area" id="mioChatArea">
+<label for="mioQuestion">今日、AIに話したいこと</label>
+<textarea id="mioQuestion" maxlength="500" placeholder="例：今日は仕事でちょっと疲れた。でもスタバでゆっくりできた。" rows="3"></textarea>
+<div class="mio-context-preview" id="mioContextPreview"></div>
+<p class="mio-memory-note" id="mioMemoryNote">最近の相談は、このiPhone内だけでAIの会話メモとして使います。</p>
+<button class="primary mio-ask-button" id="askMioBtn" type="button">AIシアターをつくる</button>
+<div aria-label="Gemini利用回数の目安" class="gemini-usage-card">
+<div class="gemini-usage-head">
+<span>現在のGemini利用</span>
+<strong id="geminiUsageCount">0 / 20 回</strong>
+</div>
+<div aria-valuemax="20" aria-valuemin="0" aria-valuenow="0" class="gemini-usage-track" id="geminiUsageTrack" role="progressbar">
+<div class="gemini-usage-bar" id="geminiUsageBar"></div>
+</div>
+<p class="gemini-usage-note" id="geminiUsageNote">あと約20回の目安です。</p>
+<p class="gemini-usage-caption">アプリ内で数えた目安です。太平洋時間0時（日本時間16時／17時ごろ）を基準にリセットします。Google側の実際の残量とは異なる場合があります。</p>
+</div>
+<p class="message mio-ai-status" id="mioAiStatus" role="status"></p>
+</div>
+</section>
+</section></section><section aria-label="ジャーナル" class="app-page" data-page="journal" id="journalPage"><div class="page-heading"><p class="eyebrow">RICH LIFE JOURNAL</p><h2>物語を残す</h2><p class="page-description">写真やひとことを素材に、AIが毎日の物語を紡ぎます。</p></div><section class="card journal-preview">
+<p class="eyebrow">RICH LIFE JOURNAL</p>
+<h2>今日の一日を、いつか物語に。</h2>
+<p>体重、ひとこと、AIとの会話。少しずつ積み重ねた記録が、読み返して楽しい日記になっていく。</p>
+<span class="coming-soon">COMING SOON</span>
+<div></div></section></section><section aria-label="設定" class="app-page" data-page="settings" id="settingsPage"><div class="page-heading"><p class="eyebrow">SETTINGS</p><h2>設定とデータ管理</h2><p class="page-description">AI接続・バックアップ・アプリ更新を管理します。</p></div><section class="card settings-card">
+<p class="eyebrow">BACKUP</p><h2>データ管理</h2>
+<div class="button-stack">
+<button class="secondary" id="exportJsonBtn" type="button">完全バックアップ（JSON）</button>
+<button class="secondary" id="exportCsvBtn" type="button">Excel用CSVを書き出す</button>
+<label class="file-button">バックアップを読み込む<input accept=".json,.csv,text/csv,application/json" id="importFile" type="file"/></label>
+</div>
+<p class="muted small">データはこの端末内に保存されます。SafariのWebサイトデータを削除する前には、JSONバックアップがおすすめです。</p>
+<div aria-live="polite" class="update-panel">
+<div>
+<p class="eyebrow">APP UPDATE</p>
+<strong>アプリの更新</strong>
+<p class="muted small" id="updateStatus">起動時に最新版を自動確認します。</p>
+</div>
+<button class="ghost" id="checkUpdateBtn" type="button">更新を確認</button>
+</div>
+<p class="version">Taka-Life Ver.3.0.0 · Multi Page</p>
+</section></section></main>
+<nav aria-label="メインメニュー" class="bottom-nav"><button aria-controls="healthPage" aria-selected="true" class="nav-item is-active" data-page-target="health" type="button"><span>♡</span><small>Health</small></button><button aria-controls="aiPage" aria-selected="false" class="nav-item" data-page-target="ai" type="button"><span>✦</span><small>AI Theater</small></button><button aria-controls="journalPage" aria-selected="false" class="nav-item" data-page-target="journal" type="button"><span>▤</span><small>Journal</small></button><button aria-controls="settingsPage" aria-selected="false" class="nav-item" data-page-target="settings" type="button"><span>⚙</span><small>Settings</small></button></nav>
+<script src="app.js?v=3.0.0"></script>
 </body>
 </html>
