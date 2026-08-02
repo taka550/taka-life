@@ -1041,7 +1041,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='3.0.1';
+const APP_VERSION='3.1.0';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
@@ -1146,4 +1146,497 @@ window.addEventListener('focus',()=>updateGeminiUsageUi());
       requestAnimationFrame(()=>target.scrollIntoView({behavior:'smooth',block:'start'}));
     });
   });
+})();
+
+
+// Ver.3.1.0 — Journal memories stored in IndexedDB
+(function setupJournal(){
+  const DB_NAME='takaLifeJournal.v1';
+  const DB_VERSION=1;
+  const ENTRY_STORE='entries';
+  const PHOTO_STORE='photos';
+  let editorPhotos=[];
+  let activeDetailId=null;
+  let objectUrls=[];
+
+  const q=id=>document.getElementById(id);
+  const safeText=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const pad=n=>String(n).padStart(2,'0');
+  const localDate=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const displayDate=s=>s?String(s).replaceAll('-','/'):'';
+  const today=()=>localDate(new Date());
+  const createId=()=>`jrnl_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
+
+  function openDb(){
+    return new Promise((resolve,reject)=>{
+      const request=indexedDB.open(DB_NAME,DB_VERSION);
+      request.onupgradeneeded=()=>{
+        const db=request.result;
+        if(!db.objectStoreNames.contains(ENTRY_STORE)){
+          const store=db.createObjectStore(ENTRY_STORE,{keyPath:'id'});
+          store.createIndex('startDate','startDate');
+          store.createIndex('savedAt','savedAt');
+        }
+        if(!db.objectStoreNames.contains(PHOTO_STORE)){
+          const photos=db.createObjectStore(PHOTO_STORE,{keyPath:'id'});
+          photos.createIndex('entryId','entryId');
+        }
+      };
+      request.onsuccess=()=>resolve(request.result);
+      request.onerror=()=>reject(request.error);
+    });
+  }
+  async function tx(storeNames,mode,runner){
+    const db=await openDb();
+    return new Promise((resolve,reject)=>{
+      const transaction=db.transaction(storeNames,mode);
+      const stores=Object.fromEntries(storeNames.map(name=>[name,transaction.objectStore(name)]));
+      let result;
+      try{result=runner(stores,transaction)}catch(error){reject(error);return}
+      transaction.oncomplete=()=>resolve(result);
+      transaction.onerror=()=>reject(transaction.error);
+      transaction.onabort=()=>reject(transaction.error||new Error('保存を中止しました'));
+    }).finally(()=>db.close());
+  }
+  function req(request){
+    return new Promise((resolve,reject)=>{
+      request.onsuccess=()=>resolve(request.result);
+      request.onerror=()=>reject(request.error);
+    });
+  }
+  async function getEntries(){
+    const db=await openDb();
+    try{
+      return await new Promise((resolve,reject)=>{
+        const request=db.transaction(ENTRY_STORE,'readonly').objectStore(ENTRY_STORE).getAll();
+        request.onsuccess=()=>resolve((request.result||[]).sort((a,b)=>String(b.startDate).localeCompare(String(a.startDate))||String(b.savedAt).localeCompare(String(a.savedAt))));
+        request.onerror=()=>reject(request.error);
+      });
+    }finally{db.close()}
+  }
+  async function getEntry(id){
+    const db=await openDb();
+    try{return await req(db.transaction(ENTRY_STORE,'readonly').objectStore(ENTRY_STORE).get(id))}
+    finally{db.close()}
+  }
+  async function getPhotos(entryId){
+    const db=await openDb();
+    try{
+      const store=db.transaction(PHOTO_STORE,'readonly').objectStore(PHOTO_STORE);
+      const index=store.index('entryId');
+      const photos=await req(index.getAll(entryId));
+      return (photos||[]).sort((a,b)=>Number(a.order)-Number(b.order));
+    }finally{db.close()}
+  }
+  async function saveEntry(entry,photos,removedPhotoIds=[]){
+    const db=await openDb();
+    return new Promise((resolve,reject)=>{
+      const transaction=db.transaction([ENTRY_STORE,PHOTO_STORE],'readwrite');
+      const entries=transaction.objectStore(ENTRY_STORE);
+      const photoStore=transaction.objectStore(PHOTO_STORE);
+      entries.put(entry);
+      removedPhotoIds.forEach(id=>photoStore.delete(id));
+      photos.forEach((photo,index)=>photoStore.put({
+        id:photo.id,
+        entryId:entry.id,
+        blob:photo.blob,
+        fileName:photo.fileName||'photo.jpg',
+        mimeType:photo.mimeType||photo.blob?.type||'image/jpeg',
+        takenAt:photo.takenAt||'',
+        latitude:Number.isFinite(photo.latitude)?photo.latitude:null,
+        longitude:Number.isFinite(photo.longitude)?photo.longitude:null,
+        locationLabel:photo.locationLabel||'',
+        caption:photo.caption||'',
+        order:index
+      }));
+      transaction.oncomplete=()=>{db.close();resolve()};
+      transaction.onerror=()=>{const e=transaction.error;db.close();reject(e)};
+    });
+  }
+  async function deleteEntry(id){
+    const photos=await getPhotos(id);
+    const db=await openDb();
+    return new Promise((resolve,reject)=>{
+      const transaction=db.transaction([ENTRY_STORE,PHOTO_STORE],'readwrite');
+      transaction.objectStore(ENTRY_STORE).delete(id);
+      const photoStore=transaction.objectStore(PHOTO_STORE);
+      photos.forEach(photo=>photoStore.delete(photo.id));
+      transaction.oncomplete=()=>{db.close();resolve()};
+      transaction.onerror=()=>{const e=transaction.error;db.close();reject(e)};
+    });
+  }
+
+  function clearUrls(){objectUrls.forEach(url=>URL.revokeObjectURL(url));objectUrls=[]}
+  function photoUrl(blob){const url=URL.createObjectURL(blob);objectUrls.push(url);return url}
+  function formatRange(entry){
+    if(entry.mode==='today')return displayDate(entry.startDate);
+    if(entry.startDate===entry.endDate)return displayDate(entry.startDate);
+    return `${displayDate(entry.startDate)}〜${displayDate(entry.endDate)}`;
+  }
+  function defaultTitle(mode,start,end){
+    if(mode==='today')return '今日の記録';
+    if(start===end)return `${displayDate(start)} の記録`;
+    return `${displayDate(start)}〜${displayDate(end)} の記録`;
+  }
+  function coordinatesLabel(photo){
+    if(!Number.isFinite(photo.latitude)||!Number.isFinite(photo.longitude))return '';
+    return `緯度 ${photo.latitude.toFixed(5)}, 経度 ${photo.longitude.toFixed(5)}`;
+  }
+  function deriveLocation(photos){
+    const labels=[...new Set(photos.map(p=>p.locationLabel||coordinatesLabel(p)).filter(Boolean))];
+    if(!labels.length)return '';
+    if(labels.length===1)return labels[0];
+    return `${labels.slice(0,2).join('・')}${labels.length>2?' ほか':''}`;
+  }
+
+  // Minimal JPEG EXIF reader: DateTimeOriginal and GPS.
+  async function readExif(file){
+    const result={takenAt:'',latitude:null,longitude:null};
+    if(!/jpe?g/i.test(file.type||file.name))return result;
+    let buffer;
+    try{buffer=await file.arrayBuffer()}catch(_){return result}
+    const view=new DataView(buffer);
+    if(view.byteLength<4||view.getUint16(0)!==0xFFD8)return result;
+    let offset=2;
+    while(offset+4<view.byteLength){
+      if(view.getUint8(offset)!==0xFF)break;
+      const marker=view.getUint8(offset+1);
+      const length=view.getUint16(offset+2);
+      if(marker===0xE1&&offset+4+length<=view.byteLength){
+        const start=offset+4;
+        if(view.getUint32(start)===0x45786966){
+          try{parseTiff(view,start+6,result)}catch(_){}
+          return result;
+        }
+      }
+      offset+=2+length;
+    }
+    return result;
+  }
+  function parseTiff(view,tiff,result){
+    const little=view.getUint16(tiff)===0x4949;
+    const u16=o=>view.getUint16(o,little);
+    const u32=o=>view.getUint32(o,little);
+    const first=tiff+u32(tiff+4);
+    const readAscii=(base,count)=>{
+      let text='';for(let i=0;i<count&&base+i<view.byteLength;i++){const c=view.getUint8(base+i);if(!c)break;text+=String.fromCharCode(c)}return text;
+    };
+    const rational=o=>u32(o)/Math.max(1,u32(o+4));
+    const readIfd=(ifd,kind)=>{
+      if(ifd<0||ifd+2>view.byteLength)return {};
+      const values={};const count=u16(ifd);
+      for(let i=0;i<count;i++){
+        const e=ifd+2+i*12;if(e+12>view.byteLength)break;
+        const tag=u16(e),type=u16(e+2),num=u32(e+4),raw=e+8;
+        const size=type===1||type===2||type===7?1:type===3?2:type===4||type===9?4:type===5||type===10?8:1;
+        const data=num*size<=4?raw:tiff+u32(raw);
+        values[tag]={type,num,data};
+      }
+      return values;
+    };
+    const ifd0=readIfd(first,'ifd0');
+    if(ifd0[0x8769]){
+      const exif=readIfd(tiff+u32(ifd0[0x8769].data),'exif');
+      const date=exif[0x9003]||exif[0x0132];
+      if(date){
+        const value=readAscii(date.data,date.num);
+        const m=value.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+        if(m)result.takenAt=`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`;
+      }
+    }
+    if(ifd0[0x8825]){
+      const gps=readIfd(tiff+u32(ifd0[0x8825].data),'gps');
+      const latRef=gps[1]?readAscii(gps[1].data,gps[1].num):'';
+      const lonRef=gps[3]?readAscii(gps[3].data,gps[3].num):'';
+      const gpsValue=item=>{
+        if(!item||item.num<3)return null;
+        return rational(item.data)+rational(item.data+8)/60+rational(item.data+16)/3600;
+      };
+      let lat=gpsValue(gps[2]),lon=gpsValue(gps[4]);
+      if(Number.isFinite(lat)){if(latRef==='S')lat=-lat;result.latitude=lat}
+      if(Number.isFinite(lon)){if(lonRef==='W')lon=-lon;result.longitude=lon}
+    }
+  }
+  async function compressImage(file){
+    if(!file.type.startsWith('image/'))throw new Error('画像ファイルではありません');
+    const bitmap=await createImageBitmap(file);
+    const maxSide=1800;
+    const scale=Math.min(1,maxSide/Math.max(bitmap.width,bitmap.height));
+    const width=Math.max(1,Math.round(bitmap.width*scale));
+    const height=Math.max(1,Math.round(bitmap.height*scale));
+    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+    const ctx=canvas.getContext('2d',{alpha:false});
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.drawImage(bitmap,0,0,width,height);
+    bitmap.close?.();
+    return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('写真を保存用に変換できませんでした')),'image/jpeg',0.84));
+  }
+  function fileDate(file,exif){
+    if(exif.takenAt)return exif.takenAt;
+    if(file.lastModified){
+      const d=new Date(file.lastModified);
+      if(!Number.isNaN(d.getTime()))return `${localDate(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    return '';
+  }
+  function selectedMode(){return document.querySelector('input[name="journalMode"]:checked')?.value||'today'}
+  function selectedRange(){
+    const mode=selectedMode();
+    const start=mode==='today'?today():(q('journalStartDate').value||today());
+    const end=mode==='today'?start:(q('journalEndDate').value||start);
+    return {mode,start,end:end<start?start:end};
+  }
+  function isInRange(takenAt,start,end){
+    if(!takenAt)return true;
+    const d=takenAt.slice(0,10);
+    return d>=start&&d<=end;
+  }
+
+  function setEditorMessage(text,type=''){
+    const el=q('journalEditorMessage');if(!el)return;
+    el.textContent=text||'';el.className=`message journal-message ${type}`.trim();
+  }
+  function updateModeUi(){
+    const mode=selectedMode();
+    q('journalPeriodFields').hidden=mode!=='period';
+    if(mode==='today'){
+      q('journalStartDate').value=today();q('journalEndDate').value=today();
+    }
+    renderPhotoEditor();
+  }
+  function resetEditor(){
+    clearUrls();editorPhotos=[];
+    q('journalEditId').value='';
+    document.querySelector('input[name="journalMode"][value="today"]').checked=true;
+    q('journalStartDate').value=today();q('journalEndDate').value=today();
+    q('journalPeriodFields').hidden=true;
+    q('journalTitleInput').value='';
+    q('journalNoteInput').value='';
+    q('journalLocationInput').value='';
+    q('journalLocationHint').textContent='位置情報がない場合は自由に入力できます。';
+    q('journalPhotoInput').value='';
+    q('journalEditorTitle').textContent='記録を作る';
+    q('saveJournalBtn').textContent='保存する';
+    setEditorMessage('');
+    renderPhotoEditor();
+  }
+  async function openEditor(id=null){
+    resetEditor();
+    if(id){
+      const entry=await getEntry(id);if(!entry)return;
+      const photos=await getPhotos(id);
+      q('journalEditId').value=id;
+      document.querySelector(`input[name="journalMode"][value="${entry.mode||'period'}"]`).checked=true;
+      q('journalPeriodFields').hidden=(entry.mode==='today');
+      q('journalStartDate').value=entry.startDate;
+      q('journalEndDate').value=entry.endDate;
+      q('journalTitleInput').value=entry.customTitle?'':entry.title;
+      // Existing default title should stay implicit when editing.
+      if(!entry.customTitle)q('journalTitleInput').placeholder=entry.title;
+      q('journalNoteInput').value=entry.note||'';
+      q('journalLocationInput').value=entry.location||'';
+      q('journalEditorTitle').textContent='記録を編集';
+      q('saveJournalBtn').textContent='変更を保存';
+      editorPhotos=photos.map(p=>({...p,existing:true,removed:false}));
+      renderPhotoEditor();
+    }
+    q('journalEditorModal').hidden=false;
+    document.body.classList.add('journal-modal-open');
+  }
+  function closeEditor(){
+    q('journalEditorModal').hidden=true;document.body.classList.remove('journal-modal-open');clearUrls();
+  }
+  function renderPhotoEditor(){
+    clearUrls();
+    const list=q('journalPhotoEditorList'),status=q('journalPhotoStatus');
+    if(!list||!status)return;
+    const visible=editorPhotos.filter(p=>!p.removed);
+    const range=selectedRange();
+    const outside=visible.filter(p=>p.takenAt&&!isInRange(p.takenAt,range.start,range.end)).length;
+    status.textContent=visible.length?`${visible.length}枚選択中${outside?`（指定期間外 ${outside}枚）`:''}`:'写真を選択してください。';
+    list.innerHTML=visible.map(photo=>{
+      const idx=editorPhotos.indexOf(photo),url=photoUrl(photo.blob);
+      const taken=photo.takenAt?photo.takenAt.replace('T',' ').slice(0,16):'撮影日時を取得できません';
+      const location=photo.locationLabel||coordinatesLabel(photo)||'位置情報なし';
+      return `<div class="journal-photo-edit-item" data-photo-index="${idx}">
+        <div class="journal-photo-thumb"><img src="${url}" alt=""></div>
+        <div class="journal-photo-edit-fields">
+          <div class="journal-photo-meta">${safeText(taken)}<br>${safeText(location)}</div>
+          <textarea maxlength="220" placeholder="この写真へのひとこと（任意）">${safeText(photo.caption||'')}</textarea>
+          <div class="journal-photo-buttons">
+            <button class="secondary" type="button" data-photo-up>↑ 前へ</button>
+            <button class="secondary" type="button" data-photo-down>↓ 後へ</button>
+            <button class="danger-button" type="button" data-photo-remove>削除</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.journal-photo-edit-item').forEach(item=>{
+      const index=Number(item.dataset.photoIndex);
+      item.querySelector('textarea')?.addEventListener('input',e=>editorPhotos[index].caption=e.target.value);
+      item.querySelector('[data-photo-remove]')?.addEventListener('click',()=>{editorPhotos[index].removed=true;renderPhotoEditor();refreshLocation(false)});
+      item.querySelector('[data-photo-up]')?.addEventListener('click',()=>movePhoto(index,-1));
+      item.querySelector('[data-photo-down]')?.addEventListener('click',()=>movePhoto(index,1));
+    });
+  }
+  function movePhoto(index,delta){
+    const active=editorPhotos.map((p,i)=>({p,i})).filter(x=>!x.p.removed);
+    const pos=active.findIndex(x=>x.i===index),next=pos+delta;
+    if(pos<0||next<0||next>=active.length)return;
+    const other=active[next].i;
+    [editorPhotos[index],editorPhotos[other]]=[editorPhotos[other],editorPhotos[index]];
+    renderPhotoEditor();
+  }
+  async function addFiles(files){
+    const selected=[...files];
+    if(!selected.length)return;
+    setEditorMessage('写真を読み込んでいます…');
+    q('saveJournalBtn').disabled=true;
+    let added=0,failed=0;
+    for(const file of selected){
+      try{
+        const exif=await readExif(file);
+        const blob=await compressImage(file);
+        editorPhotos.push({
+          id:createId(),blob,fileName:file.name,mimeType:'image/jpeg',
+          takenAt:fileDate(file,exif),
+          latitude:exif.latitude,longitude:exif.longitude,
+          locationLabel:'',caption:'',existing:false,removed:false
+        });
+        added++;
+      }catch(error){console.warn('[Journal] photo import failed',file.name,error);failed++}
+    }
+    q('saveJournalBtn').disabled=false;
+    q('journalPhotoInput').value='';
+    refreshLocation(false);renderPhotoEditor();
+    setEditorMessage(`${added}枚を追加しました${failed?`（${failed}枚は読み込めませんでした）`:''}`,failed?'error':'success');
+  }
+  function refreshLocation(showMessage=true){
+    const visible=editorPhotos.filter(p=>!p.removed);
+    const auto=deriveLocation(visible);
+    if(auto){
+      q('journalLocationInput').value=auto;
+      q('journalLocationHint').textContent='写真の位置情報から自動入力しました。地名などへ自由に書き換えられます。';
+      if(showMessage)setEditorMessage('写真の位置情報を反映しました。','success');
+    }else{
+      q('journalLocationHint').textContent='選択した写真から位置情報を取得できませんでした。必要なら自由に入力してください。';
+      if(showMessage)setEditorMessage('写真に位置情報がありません。場所は手入力できます。','error');
+    }
+  }
+  async function saveFromEditor(){
+    const id=q('journalEditId').value||createId();
+    const existingId=q('journalEditId').value;
+    const oldPhotos=existingId?await getPhotos(existingId):[];
+    const range=selectedRange();
+    const titleInput=q('journalTitleInput').value.trim();
+    const visible=editorPhotos.filter(p=>!p.removed);
+    if(!visible.length){setEditorMessage('写真を1枚以上選んでください。','error');return}
+    q('saveJournalBtn').disabled=true;q('saveJournalBtn').textContent='保存中…';
+    try{
+      const customTitle=Boolean(titleInput);
+      const entry={
+        id,mode:range.mode,startDate:range.start,endDate:range.end,
+        title:titleInput||defaultTitle(range.mode,range.start,range.end),
+        customTitle,note:q('journalNoteInput').value.trim(),
+        location:q('journalLocationInput').value.trim()||deriveLocation(visible),
+        savedAt:new Date().toISOString(),
+        updatedAt:new Date().toISOString(),
+        coverPhotoId:visible[0].id,
+        photoCount:visible.length
+      };
+      if(existingId){
+        const old=await getEntry(existingId);
+        if(old?.savedAt)entry.savedAt=old.savedAt;
+      }
+      const removedIds=oldPhotos.map(p=>p.id).filter(id=>!visible.some(v=>v.id===id));
+      await saveEntry(entry,visible,removedIds);
+      closeEditor();await renderJournalList();
+    }catch(error){
+      console.error('[Journal] save failed',error);
+      setEditorMessage('保存できませんでした。端末の空き容量を確認してください。','error');
+    }finally{
+      q('saveJournalBtn').disabled=false;
+      q('saveJournalBtn').textContent=existingId?'変更を保存':'保存する';
+    }
+  }
+
+  async function renderJournalList(){
+    const entries=await getEntries();
+    const list=q('journalList'),empty=q('journalEmpty'),count=q('journalCount');
+    if(!list)return;
+    count.textContent=`${entries.length}件`;
+    empty.hidden=entries.length>0;
+    clearUrls();
+    const cards=[];
+    for(const entry of entries){
+      const photos=await getPhotos(entry.id);
+      const cover=photos.find(p=>p.id===entry.coverPhotoId)||photos[0];
+      const url=cover?photoUrl(cover.blob):'';
+      cards.push(`<article class="journal-entry" data-journal-id="${entry.id}" tabindex="0" role="button">
+        <div class="journal-entry-cover">${url?`<img src="${url}" alt="">`:''}<span class="journal-photo-count-badge">${entry.photoCount||photos.length}枚</span></div>
+        <div class="journal-entry-body">
+          <span class="journal-entry-date">${safeText(formatRange(entry))}</span>
+          <h3>${safeText(entry.title)}</h3>
+          ${entry.location?`<p class="journal-entry-location">⌖ ${safeText(entry.location)}</p>`:''}
+          ${entry.note?`<p class="journal-entry-note">${safeText(entry.note)}</p>`:''}
+        </div>
+      </article>`);
+    }
+    list.innerHTML=cards.join('');
+    list.querySelectorAll('[data-journal-id]').forEach(card=>{
+      const open=()=>openDetail(card.dataset.journalId);
+      card.addEventListener('click',open);
+      card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}});
+    });
+  }
+  async function openDetail(id){
+    activeDetailId=id;clearUrls();
+    const entry=await getEntry(id),photos=await getPhotos(id);if(!entry)return;
+    const hero=photos[0]?photoUrl(photos[0].blob):'';
+    q('journalDetailTitle').textContent=entry.title;
+    q('journalDetailContent').innerHTML=`
+      ${hero?`<div class="journal-detail-hero"><img src="${hero}" alt=""></div>`:''}
+      <div class="journal-detail-meta">
+        <p class="eyebrow">${safeText(formatRange(entry))}</p>
+        <h2>${safeText(entry.title)}</h2>
+        ${entry.location?`<p>⌖ ${safeText(entry.location)}</p>`:''}
+        <p>保存日時 ${safeText(new Date(entry.savedAt).toLocaleString('ja-JP'))}</p>
+      </div>
+      ${entry.note?`<div class="journal-detail-note">${safeText(entry.note).replaceAll('\n','<br>')}</div>`:''}
+      <div class="journal-detail-gallery">${photos.map(photo=>{
+        const url=photoUrl(photo.blob);
+        const taken=photo.takenAt?photo.takenAt.replace('T',' ').slice(0,16):'撮影日時なし';
+        const loc=photo.locationLabel||coordinatesLabel(photo);
+        return `<div class="journal-detail-photo">
+          <img src="${url}" alt="">
+          <div class="journal-detail-photo-info">
+            <p class="meta">${safeText(taken)}${loc?`　⌖ ${safeText(loc)}`:''}</p>
+            ${photo.caption?`<p>${safeText(photo.caption).replaceAll('\n','<br>')}</p>`:''}
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+    q('journalDetailModal').hidden=false;document.body.classList.add('journal-modal-open');
+  }
+  function closeDetail(){q('journalDetailModal').hidden=true;document.body.classList.remove('journal-modal-open');clearUrls();activeDetailId=null}
+
+  q('openJournalEditorBtn')?.addEventListener('click',()=>openEditor());
+  q('closeJournalEditorBtn')?.addEventListener('click',closeEditor);
+  q('cancelJournalBtn')?.addEventListener('click',closeEditor);
+  document.querySelectorAll('[data-journal-close]').forEach(el=>el.addEventListener('click',closeEditor));
+  document.querySelectorAll('input[name="journalMode"]').forEach(el=>el.addEventListener('change',updateModeUi));
+  q('journalStartDate')?.addEventListener('change',()=>{if(q('journalEndDate').value<q('journalStartDate').value)q('journalEndDate').value=q('journalStartDate').value;renderPhotoEditor()});
+  q('journalEndDate')?.addEventListener('change',renderPhotoEditor);
+  q('journalPhotoInput')?.addEventListener('change',e=>addFiles(e.target.files));
+  q('refreshJournalLocationBtn')?.addEventListener('click',()=>refreshLocation(true));
+  q('saveJournalBtn')?.addEventListener('click',saveFromEditor);
+
+  q('closeJournalDetailBtn')?.addEventListener('click',closeDetail);
+  document.querySelectorAll('[data-journal-detail-close]').forEach(el=>el.addEventListener('click',closeDetail));
+  q('editJournalBtn')?.addEventListener('click',async()=>{const id=activeDetailId;closeDetail();if(id)await openEditor(id)});
+  q('deleteJournalBtn')?.addEventListener('click',async()=>{
+    if(!activeDetailId||!confirm('この記録を削除しますか？写真とひとことも端末から削除されます。'))return;
+    const id=activeDetailId;closeDetail();await deleteEntry(id);await renderJournalList();
+  });
+
+  window.addEventListener('beforeunload',clearUrls);
+  renderJournalList().catch(error=>console.error('[Journal] initial render failed',error));
 })();

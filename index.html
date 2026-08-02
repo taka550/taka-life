@@ -8,9 +8,9 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="Taka-Life" name="apple-mobile-web-app-title"/>
-<link href="manifest.webmanifest?v=3.0.1" rel="manifest"/>
+<link href="manifest.webmanifest?v=3.1.0" rel="manifest"/>
 <link href="apple-touch-icon-v2.png?v=2.8.6" rel="apple-touch-icon" sizes="180x180"/>
-<link href="styles.css?v=3.0.1" rel="stylesheet"/>
+<link href="styles.css?v=3.1.0" rel="stylesheet"/>
 <title>Taka-Life｜Rich Life with Mio</title>
 </head>
 <body id="top">
@@ -316,12 +316,124 @@
 <p class="message mio-ai-status" id="mioAiStatus" role="status"></p>
 </div>
 </section>
-</section></section><section aria-label="ジャーナル" class="app-page" data-page="journal" id="journalPage"><div class="page-heading"><p class="eyebrow">RICH LIFE JOURNAL</p><h2>物語を残す</h2><p class="page-description">写真やひとことを素材に、AIが毎日の物語を紡ぎます。</p></div><section class="card journal-preview">
+</section></section><section aria-label="ジャーナル" class="app-page" data-page="journal" id="journalPage">
+<div class="page-heading">
 <p class="eyebrow">RICH LIFE JOURNAL</p>
-<h2>今日の一日を、いつか物語に。</h2>
-<p>体重、ひとこと、AIとの会話。少しずつ積み重ねた記録が、読み返して楽しい日記になっていく。</p>
-<span class="coming-soon">COMING SOON</span>
-<div></div></section></section><section aria-label="設定" class="app-page" data-page="settings" id="settingsPage"><div class="page-heading"><p class="eyebrow">SETTINGS</p><h2>設定とデータ管理</h2><p class="page-description">AI接続・バックアップ・アプリ更新を管理します。</p></div><section class="card settings-card">
+<h2>思い出を残す</h2>
+<p class="page-description">今日の一枚から、旅行や帰省の記録まで。写真とひとことで残せます。</p>
+</div>
+
+<section class="card journal-actions-card">
+<div class="journal-actions-head">
+<div>
+<p class="eyebrow">MEMORIES</p>
+<h2>新しい記録</h2>
+</div>
+<button class="primary journal-create-button" id="openJournalEditorBtn" type="button">＋ 記録を作る</button>
+</div>
+<p class="muted small">写真はこの端末内に保存されます。写真の撮影日時・位置情報が取得できる場合は自動で読み込みます。</p>
+</section>
+
+<section class="journal-list-section" aria-labelledby="journalListTitle">
+<div class="section-heading">
+<div>
+<p class="eyebrow">YOUR STORIES</p>
+<h2 id="journalListTitle">保存した記録</h2>
+</div>
+<span class="journal-count" id="journalCount">0件</span>
+</div>
+<div class="journal-empty" id="journalEmpty">
+<span aria-hidden="true">▧</span>
+<strong>まだ記録がありません</strong>
+<p>今日の写真や旅行の思い出を、最初の一冊に残してみましょう。</p>
+</div>
+<div class="journal-list" id="journalList"></div>
+</section>
+
+<div class="journal-modal" id="journalEditorModal" hidden>
+<div class="journal-modal-backdrop" data-journal-close></div>
+<section class="journal-editor" role="dialog" aria-modal="true" aria-labelledby="journalEditorTitle">
+<div class="journal-editor-head">
+<div>
+<p class="eyebrow">RICH LIFE JOURNAL</p>
+<h2 id="journalEditorTitle">記録を作る</h2>
+</div>
+<button class="icon-button" id="closeJournalEditorBtn" type="button" aria-label="閉じる">×</button>
+</div>
+
+<input id="journalEditId" type="hidden">
+
+<fieldset class="journal-mode-fieldset">
+<legend>記録の種類</legend>
+<div class="journal-mode-switch">
+<label><input type="radio" name="journalMode" value="today" checked><span>今日の記録</span></label>
+<label><input type="radio" name="journalMode" value="period"><span>期間指定の記録</span></label>
+</div>
+</fieldset>
+
+<div class="journal-period-fields" id="journalPeriodFields" hidden>
+<label>開始日<input id="journalStartDate" type="date"></label>
+<label>終了日<input id="journalEndDate" type="date"></label>
+</div>
+
+<label>全体タイトル（任意）
+<input id="journalTitleInput" maxlength="80" placeholder="例：初スタバ／大阪へ帰省">
+<small>未入力なら日付に合わせたタイトルを自動で付けます。</small>
+</label>
+
+<label>全体のひとこと（任意）
+<textarea id="journalNoteInput" maxlength="600" rows="3" placeholder="例：久しぶりに家族でゆっくりできた。"></textarea>
+</label>
+
+<label>場所
+<div class="journal-location-row">
+<input id="journalLocationInput" maxlength="120" placeholder="写真の位置情報から取得。あとで編集できます。">
+<button class="secondary compact-button" id="refreshJournalLocationBtn" type="button">写真から再取得</button>
+</div>
+<small id="journalLocationHint">位置情報がない場合は自由に入力できます。</small>
+</label>
+
+<div class="journal-photo-picker">
+<div>
+<p class="eyebrow">PHOTOS</p>
+<h3>写真を追加</h3>
+<p class="muted small">iPhoneのアルバムから複数選択できます。選択後、指定期間外の写真は除外できます。</p>
+</div>
+<label class="file-button journal-file-button">写真を選ぶ
+<input id="journalPhotoInput" type="file" accept="image/*" multiple>
+</label>
+</div>
+
+<div class="journal-photo-status" id="journalPhotoStatus"></div>
+<div class="journal-photo-editor-list" id="journalPhotoEditorList"></div>
+
+<p class="message journal-message" id="journalEditorMessage" role="status"></p>
+
+<div class="journal-editor-actions">
+<button class="secondary" id="cancelJournalBtn" type="button">キャンセル</button>
+<button class="primary" id="saveJournalBtn" type="button">保存する</button>
+</div>
+</section>
+</div>
+
+<div class="journal-modal" id="journalDetailModal" hidden>
+<div class="journal-modal-backdrop" data-journal-detail-close></div>
+<section class="journal-detail" role="dialog" aria-modal="true" aria-labelledby="journalDetailTitle">
+<div class="journal-editor-head">
+<div>
+<p class="eyebrow">MEMORY</p>
+<h2 id="journalDetailTitle">記録</h2>
+</div>
+<button class="icon-button" id="closeJournalDetailBtn" type="button" aria-label="閉じる">×</button>
+</div>
+<div id="journalDetailContent"></div>
+<div class="journal-detail-actions">
+<button class="danger-button" id="deleteJournalBtn" type="button">削除</button>
+<button class="secondary" id="editJournalBtn" type="button">編集</button>
+</div>
+</section>
+</div>
+</section></section><section aria-label="設定" class="app-page" data-page="settings" id="settingsPage"><div class="page-heading"><p class="eyebrow">SETTINGS</p><h2>設定とデータ管理</h2><p class="page-description">AI接続・バックアップ・アプリ更新を管理します。</p></div><section class="card settings-card">
 <p class="eyebrow">BACKUP</p><h2>データ管理</h2>
 <div class="button-stack">
 <button class="secondary" id="exportJsonBtn" type="button">完全バックアップ（JSON）</button>
@@ -337,9 +449,9 @@
 </div>
 <button class="ghost" id="checkUpdateBtn" type="button">更新を確認</button>
 </div>
-<p class="version">Taka-Life Ver.3.0.1 · Multi Page</p>
+<p class="version">Taka-Life Ver.3.1.0 · Journal</p>
 </section></section></main>
 <nav aria-label="メインメニュー" class="bottom-nav"><button aria-controls="healthPage" aria-selected="true" class="nav-item is-active" data-page-target="health" type="button"><span>♡</span><small>Health</small></button><button aria-controls="aiPage" aria-selected="false" class="nav-item" data-page-target="ai" type="button"><span>✦</span><small>AI Theater</small></button><button aria-controls="journalPage" aria-selected="false" class="nav-item" data-page-target="journal" type="button"><span>▤</span><small>Journal</small></button><button aria-controls="settingsPage" aria-selected="false" class="nav-item" data-page-target="settings" type="button"><span>⚙</span><small>Settings</small></button></nav>
-<script src="app.js?v=3.0.1"></script>
+<script src="app.js?v=3.1.0"></script>
 </body>
 </html>

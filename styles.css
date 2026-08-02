@@ -981,3 +981,85 @@ main{max-width:720px;margin:0 auto;padding:18px 15px 26px}.card{background:rgba(
 #journalPage .journal-preview{margin-top:2px}
 #settingsPage .settings-card{margin-top:2px}
 @media(max-width:390px){.bottom-nav button.nav-item small{font-size:7px}.page-heading h2{font-size:26px}}
+
+
+/* Ver.3.1.0 — Journal memories */
+.journal-actions-card{margin-top:2px;padding:18px;background:linear-gradient(145deg,#6f7652,#4e553a);color:#fffef6;border-color:rgba(255,255,255,.12)}
+.journal-actions-card .eyebrow{color:#eadbb8}
+.journal-actions-card .muted{color:rgba(255,255,255,.72)}
+.journal-actions-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.journal-actions-head h2{margin:2px 0 0}
+.journal-create-button{flex:0 0 auto;padding:11px 15px}
+.journal-list-section{margin-top:18px}
+.journal-count{font-size:11px;color:var(--muted);letter-spacing:.08em}
+.journal-empty{display:flex;min-height:180px;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1px dashed rgba(70,53,42,.2);border-radius:22px;color:var(--muted);padding:22px}
+.journal-empty>span{font-size:34px;color:var(--gold);margin-bottom:8px}
+.journal-empty strong{color:var(--ink);font-family:Georgia,"Yu Mincho",serif}
+.journal-empty p{font-size:12px;line-height:1.7;max-width:280px}
+.journal-list{display:grid;gap:13px}
+.journal-entry{display:grid;grid-template-columns:112px minmax(0,1fr);gap:14px;padding:12px;border:1px solid rgba(70,53,42,.1);border-radius:20px;background:rgba(255,255,255,.52);box-shadow:0 9px 28px rgba(58,45,35,.06);cursor:pointer}
+.journal-entry-cover{height:112px;border-radius:15px;overflow:hidden;background:#e6ded2;position:relative}
+.journal-entry-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.journal-photo-count-badge{position:absolute;right:7px;bottom:7px;padding:3px 7px;border-radius:999px;background:rgba(31,24,19,.68);color:white;font-size:9px}
+.journal-entry-body{min-width:0;display:flex;flex-direction:column;justify-content:center}
+.journal-entry-date{font-size:9px;letter-spacing:.12em;color:var(--gold-dark);text-transform:uppercase}
+.journal-entry h3{margin:5px 0 5px;font:600 19px/1.25 Georgia,"Yu Mincho",serif;color:var(--ink)}
+.journal-entry-location,.journal-entry-note{margin:2px 0;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.journal-entry-note{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.journal-modal[hidden]{display:none}
+.journal-modal{position:fixed;inset:0;z-index:120;display:flex;align-items:flex-end;justify-content:center}
+.journal-modal-backdrop{position:absolute;inset:0;background:rgba(28,22,18,.48);backdrop-filter:blur(5px)}
+.journal-editor,.journal-detail{position:relative;z-index:1;width:min(100%,680px);max-height:92dvh;overflow:auto;background:var(--paper,#f6f1e9);border-radius:26px 26px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -20px 60px rgba(26,20,16,.24)}
+.journal-editor-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:15px}
+.journal-editor-head h2{margin:2px 0 0;font-family:Georgia,"Yu Mincho",serif}
+.icon-button{width:34px;height:34px;border:1px solid rgba(70,53,42,.14);border-radius:50%;background:rgba(255,255,255,.65);font-size:20px;color:var(--ink)}
+.journal-mode-fieldset{border:0;padding:0;margin:0 0 14px}
+.journal-mode-fieldset legend{font-size:11px;color:var(--muted);margin-bottom:7px}
+.journal-mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.journal-mode-switch input{position:absolute;opacity:0;pointer-events:none}
+.journal-mode-switch span{display:block;padding:10px;text-align:center;border:1px solid rgba(70,53,42,.13);border-radius:13px;background:rgba(255,255,255,.5);font-size:12px}
+.journal-mode-switch input:checked+span{background:var(--ink);color:white;border-color:var(--ink)}
+.journal-period-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.journal-period-fields[hidden]{display:none}
+.journal-editor label{display:block;margin-bottom:13px;font-size:11px;color:var(--muted)}
+.journal-editor label>input,.journal-editor label>textarea{margin-top:6px}
+.journal-editor label small{display:block;margin-top:5px;line-height:1.5}
+.journal-location-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:6px}
+.journal-location-row input{margin-top:0!important}
+.compact-button{padding:9px 10px;font-size:10px}
+.journal-photo-picker{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:6px 0 12px;padding:14px;border-radius:17px;background:rgba(104,111,76,.09);border:1px solid rgba(104,111,76,.16)}
+.journal-photo-picker h3{margin:2px 0 3px;font-family:Georgia,"Yu Mincho",serif}
+.journal-file-button{flex:0 0 auto}
+.journal-photo-status{font-size:11px;color:var(--muted);margin-bottom:8px}
+.journal-photo-editor-list{display:grid;gap:11px}
+.journal-photo-edit-item{display:grid;grid-template-columns:92px minmax(0,1fr);gap:11px;padding:10px;border:1px solid rgba(70,53,42,.1);border-radius:16px;background:rgba(255,255,255,.48)}
+.journal-photo-thumb{height:92px;border-radius:12px;overflow:hidden;background:#ddd4c7}
+.journal-photo-thumb img{width:100%;height:100%;object-fit:cover}
+.journal-photo-edit-fields{min-width:0}
+.journal-photo-meta{font-size:9px;line-height:1.55;color:var(--muted);margin-bottom:5px}
+.journal-photo-edit-fields textarea{min-height:55px;padding:8px;font-size:11px}
+.journal-photo-buttons{display:flex;gap:6px;margin-top:6px}
+.journal-photo-buttons button{padding:5px 8px;font-size:9px;border-radius:9px}
+.journal-editor-actions,.journal-detail-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:17px}
+.journal-message{min-height:18px;margin:8px 0 0}
+.journal-detail-hero{height:210px;border-radius:19px;overflow:hidden;background:#ddd4c7}
+.journal-detail-hero img{width:100%;height:100%;object-fit:cover}
+.journal-detail-meta{margin:12px 0 15px}
+.journal-detail-meta h2{margin:4px 0 5px;font:600 25px/1.25 Georgia,"Yu Mincho",serif}
+.journal-detail-meta p{margin:3px 0;color:var(--muted);font-size:11px}
+.journal-detail-note{padding:13px 14px;border-radius:15px;background:rgba(104,111,76,.09);line-height:1.75;font-size:12px;margin-bottom:14px}
+.journal-detail-gallery{display:grid;gap:12px}
+.journal-detail-photo{overflow:hidden;border-radius:17px;background:rgba(255,255,255,.54);border:1px solid rgba(70,53,42,.09)}
+.journal-detail-photo img{width:100%;max-height:380px;object-fit:cover;display:block}
+.journal-detail-photo-info{padding:10px 12px}
+.journal-detail-photo-info p{margin:2px 0;font-size:11px;line-height:1.6}
+.journal-detail-photo-info .meta{font-size:9px;color:var(--muted)}
+.danger-button{border:1px solid rgba(151,64,57,.35);background:rgba(151,64,57,.07);color:#8f3d37;border-radius:13px;padding:11px}
+body.journal-modal-open{overflow:hidden}
+@media(max-width:390px){
+ .journal-entry{grid-template-columns:96px minmax(0,1fr)}
+ .journal-entry-cover{height:96px}
+ .journal-photo-edit-item{grid-template-columns:78px minmax(0,1fr)}
+ .journal-photo-thumb{height:78px}
+ .journal-location-row{grid-template-columns:1fr}
+}
