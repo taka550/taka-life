@@ -8,9 +8,9 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="Taka-Life" name="apple-mobile-web-app-title"/>
-<link href="manifest.webmanifest?v=3.1.0" rel="manifest"/>
+<link href="manifest.webmanifest?v=3.2.0" rel="manifest"/>
 <link href="apple-touch-icon-v2.png?v=2.8.6" rel="apple-touch-icon" sizes="180x180"/>
-<link href="styles.css?v=3.1.0" rel="stylesheet"/>
+<link href="styles.css?v=3.2.0" rel="stylesheet"/>
 <title>Taka-Life｜Rich Life with Mio</title>
 </head>
 <body id="top">
@@ -342,6 +342,13 @@
 </div>
 <span class="journal-count" id="journalCount">0件</span>
 </div>
+<div class="journal-search-panel">
+<label class="journal-search-box" aria-label="思い出を検索">
+<span aria-hidden="true">⌕</span>
+<input id="journalSearchInput" type="search" placeholder="タイトル・場所・タグ・出来事・AI日記を検索">
+</label>
+<div class="journal-tag-filters" id="journalTagFilters"></div>
+</div>
 <div class="journal-empty" id="journalEmpty">
 <span aria-hidden="true">▧</span>
 <strong>まだ記録がありません</strong>
@@ -393,6 +400,16 @@
 <small id="journalLocationHint">位置情報がない場合は自由に入力できます。</small>
 </label>
 
+<label>タグ（任意）
+<input id="journalTagsInput" maxlength="240" placeholder="例：スタバ、読書、家族、帰省">
+<small>読点・カンマ・空白で区切れます。保存後の検索にも使えます。</small>
+</label>
+
+<label>日記に入れたいワード・出来事（任意）
+<textarea id="journalDiaryHintsInput" maxlength="1200" rows="4" placeholder="例：初めてモバイルオーダーを使った&#10;成瀬シリーズを読み終えた"></textarea>
+<small>箇条書きでも大丈夫です。AI日記の材料になり、検索もできます。</small>
+</label>
+
 <div class="journal-photo-picker">
 <div>
 <p class="eyebrow">PHOTOS</p>
@@ -404,7 +421,7 @@
 </label>
 </div>
 
-<div class="journal-photo-status" id="journalPhotoStatus"></div>
+<div class="journal-photo-status" id="journalPhotoStatus"></div><p class="muted small journal-ai-photo-help">写真ごとに「AI日記に使う」を選べます。選ばない写真はAIへ送信されません。</p>
 <div class="journal-photo-editor-list" id="journalPhotoEditorList"></div>
 
 <p class="message journal-message" id="journalEditorMessage" role="status"></p>
@@ -427,9 +444,44 @@
 <button class="icon-button" id="closeJournalDetailBtn" type="button" aria-label="閉じる">×</button>
 </div>
 <div id="journalDetailContent"></div>
+<div class="journal-ai-actions">
+<button class="primary" id="createAiDiaryBtn" type="button">✦ AI日記を作る</button>
+<button class="secondary" id="editAiDiaryBtn" type="button" hidden>AI日記を編集</button>
+</div>
 <div class="journal-detail-actions">
 <button class="danger-button" id="deleteJournalBtn" type="button">削除</button>
-<button class="secondary" id="editJournalBtn" type="button">編集</button>
+<button class="secondary" id="editJournalBtn" type="button">記録を編集</button>
+</div>
+</section>
+</div>
+
+<div class="journal-modal" id="journalAiConfirmModal" hidden>
+<div class="journal-modal-backdrop" data-journal-ai-close></div>
+<section class="journal-ai-confirm" role="dialog" aria-modal="true" aria-labelledby="journalAiConfirmTitle">
+<div class="journal-editor-head">
+<div><p class="eyebrow">AI JOURNAL</p><h2 id="journalAiConfirmTitle">AIへ送る内容を確認</h2></div>
+<button class="icon-button" id="closeJournalAiConfirmBtn" type="button" aria-label="閉じる">×</button>
+</div>
+<div id="journalAiConfirmContent"></div>
+<p class="message journal-message" id="journalAiMessage" role="status"></p>
+<div class="journal-editor-actions">
+<button class="secondary" id="cancelJournalAiBtn" type="button">戻る</button>
+<button class="primary" id="generateJournalAiBtn" type="button">確認して日記を作る</button>
+</div>
+</section>
+</div>
+
+<div class="journal-modal" id="journalAiEditModal" hidden>
+<div class="journal-modal-backdrop" data-journal-ai-edit-close></div>
+<section class="journal-ai-confirm" role="dialog" aria-modal="true" aria-labelledby="journalAiEditTitle">
+<div class="journal-editor-head">
+<div><p class="eyebrow">AI JOURNAL</p><h2 id="journalAiEditTitle">AI日記を編集</h2></div>
+<button class="icon-button" id="closeJournalAiEditBtn" type="button" aria-label="閉じる">×</button>
+</div>
+<textarea id="journalAiDiaryTextarea" rows="14" maxlength="6000" placeholder="AI日記"></textarea>
+<div class="journal-editor-actions">
+<button class="secondary" id="cancelJournalAiEditBtn" type="button">キャンセル</button>
+<button class="primary" id="saveJournalAiDiaryBtn" type="button">保存する</button>
 </div>
 </section>
 </div>
@@ -449,9 +501,9 @@
 </div>
 <button class="ghost" id="checkUpdateBtn" type="button">更新を確認</button>
 </div>
-<p class="version">Taka-Life Ver.3.1.0 · Journal</p>
+<p class="version">Taka-Life Ver.3.2.0 · AI Journal</p>
 </section></section></main>
 <nav aria-label="メインメニュー" class="bottom-nav"><button aria-controls="healthPage" aria-selected="true" class="nav-item is-active" data-page-target="health" type="button"><span>♡</span><small>Health</small></button><button aria-controls="aiPage" aria-selected="false" class="nav-item" data-page-target="ai" type="button"><span>✦</span><small>AI Theater</small></button><button aria-controls="journalPage" aria-selected="false" class="nav-item" data-page-target="journal" type="button"><span>▤</span><small>Journal</small></button><button aria-controls="settingsPage" aria-selected="false" class="nav-item" data-page-target="settings" type="button"><span>⚙</span><small>Settings</small></button></nav>
-<script src="app.js?v=3.1.0"></script>
+<script src="app.js?v=3.2.0"></script>
 </body>
 </html>

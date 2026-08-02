@@ -1041,7 +1041,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='3.1.0';
+const APP_VERSION='3.2.0';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
@@ -1149,7 +1149,7 @@ window.addEventListener('focus',()=>updateGeminiUsageUi());
 })();
 
 
-// Ver.3.1.0 — Journal memories stored in IndexedDB
+// Ver.3.2.0 — Journal memories, search and AI diary
 (function setupJournal(){
   const DB_NAME='takaLifeJournal.v1';
   const DB_VERSION=1;
@@ -1157,6 +1157,7 @@ window.addEventListener('focus',()=>updateGeminiUsageUi());
   const PHOTO_STORE='photos';
   let editorPhotos=[];
   let activeDetailId=null;
+  let pendingAiEntryId=null;
   let objectUrls=[];
 
   const q=id=>document.getElementById(id);
@@ -1618,6 +1619,142 @@ window.addEventListener('focus',()=>updateGeminiUsageUi());
   }
   function closeDetail(){q('journalDetailModal').hidden=true;document.body.classList.remove('journal-modal-open');clearUrls();activeDetailId=null}
 
+
+  function blobToBase64(blob){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(String(reader.result||'').split(',')[1]||'');
+      reader.onerror=()=>reject(reader.error||new Error('写真を読み込めませんでした'));
+      reader.readAsDataURL(blob);
+    });
+  }
+  function closeAiConfirm(){
+    q('journalAiConfirmModal').hidden=true;
+    document.body.classList.remove('journal-modal-open');
+    q('journalAiMessage').textContent='';
+  }
+  function closeAiEdit(){
+    q('journalAiEditModal').hidden=true;
+    document.body.classList.remove('journal-modal-open');
+  }
+  async function openAiConfirm(){
+    if(!activeDetailId)return;
+    pendingAiEntryId=activeDetailId;
+    const entry=await getEntry(activeDetailId),photos=await getPhotos(activeDetailId);
+    if(!entry)return;
+    const allowed=photos.filter(photo=>photo.aiAllowed);
+    q('journalAiConfirmContent').innerHTML=`
+      <div class="journal-ai-confirm-summary">
+        <p><b>タイトル</b><span>${safeText(entry.title)}</span></p>
+        <p><b>期間</b><span>${safeText(formatRange(entry))}</span></p>
+        ${entry.location?`<p><b>場所</b><span>${safeText(entry.location)}</span></p>`:''}
+        <p><b>AIへ送る写真</b><span>${allowed.length}枚 / 全${photos.length}枚</span></p>
+        ${entry.tags?.length?`<p><b>タグ</b><span>${safeText(entry.tags.join('、'))}</span></p>`:''}
+        ${entry.diaryHints?`<div><b>ワード・出来事</b><p>${safeText(entry.diaryHints).replaceAll('\n','<br>')}</p></div>`:''}
+      </div>
+      <p class="muted small">「AI日記に使う」を選んだ写真だけをGeminiへ送信します。選んでいない写真は送信されません。</p>`;
+    q('generateJournalAiBtn').disabled=allowed.length===0;
+    q('journalAiMessage').textContent=allowed.length?'':'AI日記に使う写真を1枚以上選んでください。記録の編集画面から設定できます。';
+    closeDetail();
+    q('journalAiConfirmModal').hidden=false;
+    document.body.classList.add('journal-modal-open');
+  }
+  function buildJournalPrompt(entry,photos){
+    const photoNotes=photos.map((photo,index)=>`写真${index+1}${photo.caption?`のメモ：${photo.caption}`:''}`).join('\n');
+    return `あなたは、ユーザー本人の思い出を丁寧に文章へまとめる日記編集者です。
+以下の情報と写真から、日本語の日記を作成してください。
+
+【ルール】
+- 事実として確認できない内容を勝手に作らない。
+- 写真から読み取れる内容、ユーザーが入力した内容だけを使う。
+- 250〜500文字程度。
+- 上品だが自然で、本人が読み返して温かい気持ちになれる文章。
+- 健康上の診断や断定はしない。
+- 見出しや箇条書きは使わず、日記本文だけ返す。
+- 写真に人物がいても、本人が明示していない関係性や名前を推測しない。
+
+タイトル：${entry.title}
+期間：${formatRange(entry)}
+場所：${entry.location||'未設定'}
+全体のひとこと：${entry.note||'なし'}
+タグ：${(entry.tags||[]).join('、')||'なし'}
+日記に入れたいワード・出来事：
+${entry.diaryHints||'なし'}
+
+写真ごとのメモ：
+${photoNotes||'なし'}`;
+  }
+  async function callGeminiForJournal(entry,photos){
+    const key=getGeminiKey();
+    if(!key)throw new Error('APIキーが未設定です。SettingsでGemini APIキーを設定してください。');
+    if(!photos.length)throw new Error('AI日記に使う写真が選ばれていません。');
+    if(photos.length>12)throw new Error('AI日記に使える写真は一度に12枚までです。');
+    const model=await getAvailableGeminiModel(false);
+    const parts=[{text:buildJournalPrompt(entry,photos)}];
+    for(const photo of photos){
+      parts.push({inlineData:{mimeType:photo.mimeType||photo.blob?.type||'image/jpeg',data:await blobToBase64(photo.blob)}});
+    }
+    const generationConfig={maxOutputTokens:1200,temperature:.72};
+    if(/^gemini-3/i.test(model))generationConfig.thinkingConfig={thinkingLevel:'LOW'};
+    else if(/^gemini-2\.5-(?:flash|flash-lite)/i.test(model))generationConfig.thinkingConfig={thinkingBudget:0};
+    const result=await generateWithModelFallback({
+      initialModel:model,key,timeoutMs:45000,operation:'ai-journal',
+      onRetry:()=>{q('journalAiMessage').textContent='AIに接続しています。少しお待ちください';},
+      buildBody:()=>({contents:[{role:'user',parts}],generationConfig})
+    });
+    const text=extractCandidateText(result.data).trim();
+    if(!text)throw new Error('AI日記を作成できませんでした。');
+    writeGeminiDiagnosticLog({event:'generation-success',operation:'ai-journal',model:result.model,httpStatus:200,photoCount:photos.length});
+    return text.replace(/```(?:markdown|text)?/gi,'').replace(/```/g,'').trim();
+  }
+  async function generateAiDiary(){
+    if(!pendingAiEntryId)return;
+    const id=pendingAiEntryId;
+    const entry=await getEntry(id),photos=await getPhotos(id);
+    if(!entry)return;
+    const allowed=photos.filter(photo=>photo.aiAllowed);
+    const btn=q('generateJournalAiBtn');
+    btn.disabled=true;btn.textContent='作成中…';
+    q('journalAiMessage').textContent='AIに接続しています。少しお待ちください';
+    try{
+      const diary=await callGeminiForJournal(entry,allowed);
+      entry.aiDiary=diary;
+      entry.aiDiaryUpdatedAt=new Date().toISOString();
+      entry.updatedAt=new Date().toISOString();
+      await saveEntry(entry,photos,[]);
+      closeAiConfirm();
+      await openDetail(id);
+      await renderJournalList();
+    }catch(error){
+      console.error('[Journal AI]',error);
+      q('journalAiMessage').textContent=friendlyGeminiError(error,'AI日記の作成');
+      q('journalAiMessage').className='message journal-message error';
+    }finally{
+      btn.disabled=false;btn.textContent='確認して日記を作る';
+    }
+  }
+  async function openAiEdit(){
+    if(!activeDetailId)return;
+    pendingAiEntryId=activeDetailId;
+    const entry=await getEntry(activeDetailId);if(!entry)return;
+    q('journalAiDiaryTextarea').value=entry.aiDiary||'';
+    closeDetail();
+    q('journalAiEditModal').hidden=false;
+    document.body.classList.add('journal-modal-open');
+  }
+  async function saveAiDiaryEdit(){
+    if(!pendingAiEntryId)return;
+    const id=pendingAiEntryId;
+    const entry=await getEntry(id),photos=await getPhotos(id);if(!entry)return;
+    entry.aiDiary=q('journalAiDiaryTextarea').value.trim();
+    entry.aiDiaryUpdatedAt=new Date().toISOString();
+    entry.updatedAt=new Date().toISOString();
+    await saveEntry(entry,photos,[]);
+    closeAiEdit();
+    await openDetail(id);
+    await renderJournalList();
+  }
+
   q('openJournalEditorBtn')?.addEventListener('click',()=>openEditor());
   q('closeJournalEditorBtn')?.addEventListener('click',closeEditor);
   q('cancelJournalBtn')?.addEventListener('click',closeEditor);
@@ -1636,6 +1773,19 @@ window.addEventListener('focus',()=>updateGeminiUsageUi());
     if(!activeDetailId||!confirm('この記録を削除しますか？写真とひとことも端末から削除されます。'))return;
     const id=activeDetailId;closeDetail();await deleteEntry(id);await renderJournalList();
   });
+
+
+  q('journalSearchInput')?.addEventListener('input',()=>renderJournalList());
+  q('createAiDiaryBtn')?.addEventListener('click',openAiConfirm);
+  q('editAiDiaryBtn')?.addEventListener('click',openAiEdit);
+  q('closeJournalAiConfirmBtn')?.addEventListener('click',closeAiConfirm);
+  q('cancelJournalAiBtn')?.addEventListener('click',closeAiConfirm);
+  document.querySelectorAll('[data-journal-ai-close]').forEach(el=>el.addEventListener('click',closeAiConfirm));
+  q('generateJournalAiBtn')?.addEventListener('click',generateAiDiary);
+  q('closeJournalAiEditBtn')?.addEventListener('click',closeAiEdit);
+  q('cancelJournalAiEditBtn')?.addEventListener('click',closeAiEdit);
+  document.querySelectorAll('[data-journal-ai-edit-close]').forEach(el=>el.addEventListener('click',closeAiEdit));
+  q('saveJournalAiDiaryBtn')?.addEventListener('click',saveAiDiaryEdit);
 
   window.addEventListener('beforeunload',clearUrls);
   renderJournalList().catch(error=>console.error('[Journal] initial render failed',error));
