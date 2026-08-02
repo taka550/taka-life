@@ -1041,7 +1041,7 @@ $('toggleApiKeyBtn')?.addEventListener('click',()=>{
   input.type=showing?'password':'text';
   $('toggleApiKeyBtn').textContent=showing?'表示':'隠す';
 });
-const APP_VERSION='3.2.0';
+const APP_VERSION='3.3.0';
 let swRegistration=null;
 let updateReloading=false;
 let lastUpdateCheck=0;
@@ -1560,6 +1560,8 @@ window.addEventListener('focus',()=>updateGeminiUsageUi());
       if(existingId){
         const old=await getEntry(existingId);
         if(old?.savedAt)entry.savedAt=old.savedAt;
+        entry.aiJournal=old?.aiJournal||'';
+        entry.aiJournalUpdatedAt=old?.aiJournalUpdatedAt||'';
         entry.aiDiary=old?.aiDiary||'';entry.aiDiaryUpdatedAt=old?.aiDiaryUpdatedAt||'';
       }
       const removedIds=oldPhotos.map(p=>p.id).filter(id=>!visible.some(v=>v.id===id));
@@ -1649,10 +1651,179 @@ window.addEventListener('focus',()=>updateGeminiUsageUi());
           </div>
         </div>`;
       }).join('')}</div>`;
+    q('journalAiText').value=entry.aiJournal||'';
+    const aiSelectedCount=photos.filter(photo=>photo.aiAllowed).length;
+    q('journalAiSelectionSummary').textContent=aiSelectedCount
+      ?`AIに送信する写真：${aiSelectedCount}枚。タイトル・ひとこと・場所・タグ・出来事も一緒に送ります。`
+      :'AIに使う写真は未選択です。文字情報だけでも日記を作れます。';
+    setJournalAiMessage('');
     q('journalDetailModal').hidden=false;document.body.classList.add('journal-modal-open');
   }
   function closeDetail(){q('journalDetailModal').hidden=true;document.body.classList.remove('journal-modal-open');clearUrls();activeDetailId=null}
 
+
+  
+  function setJournalAiMessage(text,type=''){
+    const el=q('journalAiMessage');
+    if(!el)return;
+    el.textContent=text||'';
+    el.className=`message journal-message ${type}`.trim();
+  }
+
+  function blobToBase64(blob){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(String(reader.result||'').split(',')[1]||'');
+      reader.onerror=()=>reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function buildAiJournalPrompt(entry,photos){
+    const photoNotes=photos.map((photo,index)=>{
+      const taken=photo.takenAt?photo.takenAt.replace('T',' ').slice(0,16):'撮影日時なし';
+      return `${index+1}. ${photo.caption||'ひとことなし'}（${taken}）`;
+    }).join('\n');
+
+    return `あなたは「Taka-Life」の日記編集者です。
+以下の事実だけを使い、日本語で自然な日記を書いてください。
+
+【ルール】
+- 写真や入力情報にない出来事は創作しない。
+- タカ本人の一人称の日記として書く。
+- 大げさにせず、温かく読み返しやすい文章にする。
+- 350〜650文字程度。
+- 見出しや箇条書きは使わず、日記本文だけを返す。
+- 健康や医療の診断・断定はしない。
+
+期間: ${formatRange(entry)}
+タイトル: ${entry.title||''}
+場所: ${entry.location||'未設定'}
+全体のひとこと: ${entry.note||'なし'}
+タグ: ${(entry.tags||[]).join('、')||'なし'}
+入れてほしいワード・出来事:
+${(entry.events||[]).map(v=>`- ${v}`).join('\n')||'- なし'}
+
+AI使用を許可された写真ごとのひとこと:
+${photoNotes||'写真は送信されません。'}
+
+写真がある場合は、画像から確実に読み取れる内容だけを自然に反映してください。`;
+  }
+
+  async function callGeminiForAiJournal(entry,photos,onRetry){
+    const key=getGeminiKey();
+    if(!key)throw new Error('APIキーが未設定です。設定画面でGemini APIキーを保存してください。');
+    if(photos.length>10)throw new Error('AI日記に使う写真は10枚以内にしてください。');
+
+    const parts=[{text:buildAiJournalPrompt(entry,photos)}];
+    for(const photo of photos){
+      parts.push({
+        inlineData:{
+          mimeType:photo.mimeType||photo.blob?.type||'image/jpeg',
+          data:await blobToBase64(photo.blob)
+        }
+      });
+    }
+
+    const initialModel=await getAvailableGeminiModel(false);
+    const result=await generateWithModelFallback({
+      initialModel,
+      key,
+      timeoutMs:45000,
+      operation:'ai-journal',
+      onRetry,
+      buildBody:selectedModel=>{
+        const generationConfig={maxOutputTokens:1400,temperature:.62};
+        if(/^gemini-3/i.test(selectedModel)){
+          generationConfig.thinkingConfig={thinkingLevel:'LOW'};
+        }else if(/^gemini-2\.5-(?:flash|flash-lite)/i.test(selectedModel)){
+          generationConfig.thinkingConfig={thinkingBudget:0};
+        }
+        return {
+          contents:[{role:'user',parts}],
+          generationConfig
+        };
+      }
+    });
+
+    const text=extractCandidateText(result.data);
+    if(!text)throw new Error('AIから日記が返ってきませんでした。');
+    if(typeof writeGeminiDiagnosticLog==='function'){
+      writeGeminiDiagnosticLog({
+        event:'generation-success',
+        operation:'ai-journal',
+        model:result.model,
+        httpStatus:200,
+        photoCount:photos.length
+      });
+    }
+    return text.replace(/```(?:text|markdown)?/gi,'').replace(/```/g,'').trim();
+  }
+
+  async function createAiJournal(){
+    if(!activeDetailId)return;
+    const entry=await getEntry(activeDetailId);
+    const allPhotos=await getPhotos(activeDetailId);
+    const selected=allPhotos.filter(photo=>photo.aiAllowed);
+
+    const summary=`AIへ送信する内容
+
+写真：${selected.length}枚
+タイトル：${entry.title}
+場所：${entry.location||'未設定'}
+タグ：${(entry.tags||[]).join('、')||'なし'}
+出来事：${(entry.events||[]).length}件
+
+この内容でAI日記を作りますか？`;
+
+    if(!confirm(summary))return;
+
+    const button=q('createAiJournalBtn');
+    button.disabled=true;
+    button.textContent='作成中…';
+    setJournalAiMessage('AIに接続しています。少しお待ちください');
+
+    try{
+      const journal=await callGeminiForAiJournal(entry,selected,()=>{
+        setJournalAiMessage('AIに接続しています。少しお待ちください');
+      });
+      q('journalAiText').value=journal;
+      setJournalAiMessage('AI日記を作りました。内容を確認して「日記を保存」を押してください。','success');
+    }catch(error){
+      console.error('[Journal AI]',error);
+      const text=error?.status===503
+        ?'現在AIが混み合っています。しばらくしてからもう一度お試しください'
+        :(typeof friendlyGeminiError==='function'
+          ?friendlyGeminiError(error,'日記作成')
+          :(error?.message||'AI日記を作れませんでした。'));
+      setJournalAiMessage(text,'error');
+    }finally{
+      button.disabled=false;
+      button.textContent='AI日記を作る';
+    }
+  }
+
+  async function saveAiJournal(){
+    if(!activeDetailId)return;
+    const entry=await getEntry(activeDetailId);
+    if(!entry)return;
+
+    entry.aiJournal=q('journalAiText').value.trim();
+    entry.aiJournalUpdatedAt=new Date().toISOString();
+    entry.updatedAt=new Date().toISOString();
+
+    const photos=await getPhotos(activeDetailId);
+    await saveEntry(entry,photos,[]);
+    setJournalAiMessage('AI日記を保存しました。','success');
+    await renderJournalList();
+  }
+
+  async function clearAiJournal(){
+    if(!activeDetailId||!confirm('保存済みのAI日記を消しますか？'))return;
+    q('journalAiText').value='';
+    await saveAiJournal();
+    setJournalAiMessage('AI日記を削除しました。','success');
+  }
 
   q('openJournalEditorBtn')?.addEventListener('click',()=>openEditor());
   q('closeJournalEditorBtn')?.addEventListener('click',closeEditor);
@@ -1664,6 +1835,9 @@ window.addEventListener('focus',()=>updateGeminiUsageUi());
   q('journalPhotoInput')?.addEventListener('change',e=>addFiles(e.target.files));
   q('refreshJournalLocationBtn')?.addEventListener('click',()=>refreshLocation(true));
   q('saveJournalBtn')?.addEventListener('click',saveFromEditor);
+  q('createAiJournalBtn')?.addEventListener('click',createAiJournal);
+  q('saveAiJournalBtn')?.addEventListener('click',saveAiJournal);
+  q('clearAiJournalBtn')?.addEventListener('click',clearAiJournal);
 
   q('closeJournalDetailBtn')?.addEventListener('click',closeDetail);
   document.querySelectorAll('[data-journal-detail-close]').forEach(el=>el.addEventListener('click',closeDetail));

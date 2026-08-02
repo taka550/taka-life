@@ -8,9 +8,9 @@
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="Taka-Life" name="apple-mobile-web-app-title"/>
-<link href="manifest.webmanifest?v=3.2.0" rel="manifest"/>
+<link href="manifest.webmanifest?v=3.3.0" rel="manifest"/>
 <link href="apple-touch-icon-v2.png?v=2.8.6" rel="apple-touch-icon" sizes="180x180"/>
-<link href="styles.css?v=3.2.0" rel="stylesheet"/>
+<link href="styles.css?v=3.3.0" rel="stylesheet"/>
 <title>Taka-Life｜Rich Life with Mio</title>
 </head>
 <body id="top">
@@ -444,6 +444,22 @@
 <button class="icon-button" id="closeJournalDetailBtn" type="button" aria-label="閉じる">×</button>
 </div>
 <div id="journalDetailContent"></div>
+<section class="journal-ai-panel" id="journalAiPanel">
+  <div class="journal-ai-heading">
+    <div>
+      <p class="eyebrow">AI JOURNAL</p>
+      <h3>AI日記</h3>
+    </div>
+    <button class="primary compact-button" id="createAiJournalBtn" type="button">AI日記を作る</button>
+  </div>
+  <p class="muted small" id="journalAiSelectionSummary">AIに使う写真と記録内容から日記を作れます。</p>
+  <textarea id="journalAiText" rows="8" maxlength="5000" placeholder="AIが作った日記がここに表示されます。あとから自由に編集できます。"></textarea>
+  <div class="journal-ai-actions">
+    <button class="secondary" id="saveAiJournalBtn" type="button">日記を保存</button>
+    <button class="secondary" id="clearAiJournalBtn" type="button">日記を消す</button>
+  </div>
+  <p class="message journal-message" id="journalAiMessage" role="status"></p>
+</section>
 <div class="journal-detail-actions">
 <button class="danger-button" id="deleteJournalBtn" type="button">削除</button>
 <button class="secondary" id="editJournalBtn" type="button">記録を編集</button>
@@ -468,9 +484,9 @@
 </div>
 <button class="ghost" id="checkUpdateBtn" type="button">更新を確認</button>
 </div>
-<p class="version">Taka-Life Ver.3.2.0 · Journal Complete</p>
+<p class="version">Taka-Life Ver.3.3.0 · AI Journal</p>
 </section></section></main>
 <nav aria-label="メインメニュー" class="bottom-nav"><button aria-controls="healthPage" aria-selected="true" class="nav-item is-active" data-page-target="health" type="button"><span>♡</span><small>Health</small></button><button aria-controls="aiPage" aria-selected="false" class="nav-item" data-page-target="ai" type="button"><span>✦</span><small>AI Theater</small></button><button aria-controls="journalPage" aria-selected="false" class="nav-item" data-page-target="journal" type="button"><span>▤</span><small>Journal</small></button><button aria-controls="settingsPage" aria-selected="false" class="nav-item" data-page-target="settings" type="button"><span>⚙</span><small>Settings</small></button></nav>
-<script src="app.js?v=3.2.0"></script>
+<script src="app.js?v=3.3.0"></script>
 </body>
 </html>
